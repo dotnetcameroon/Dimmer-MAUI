@@ -558,6 +558,11 @@ public partial class HomePageVM : ObservableObject
             return;
         }
         await PlayBackService.PauseResumeSongAsync(CurrentPositionInSeconds);
+
+        if (TemporarilyPickedSong is not null)
+        {
+            TemporarilyPickedSong.IsCurrentPlayingHighlight = true;
+        }
     }
     
 
@@ -1253,7 +1258,7 @@ public partial class HomePageVM : ObservableObject
 
     public ParseLiveQueryClient LiveQueryClient { get; set; }
 
-    public void SetupLiveQueries()
+    public async void SetupLiveQueries()
     {
         
         try
@@ -1315,8 +1320,7 @@ public partial class HomePageVM : ObservableObject
         }
         catch (Exception ex)
         {
-
-            throw;
+            
         }
     }
 
