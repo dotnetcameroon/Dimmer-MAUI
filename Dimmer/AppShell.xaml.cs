@@ -5,28 +5,31 @@ using Windows.Storage;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.UI.Input; // Required for KeyboardAccelerator
 using Microsoft.UI.Xaml.Input; // Required for KeyRoutedEventArgs
-using System.Collections.Generic; // Required for List<string> for navigation history
+using System.Collections.Generic;
+using Syncfusion.Maui.Toolkit.Chips;
+using Syncfusion.Maui.Toolkit.EffectsView; // Required for List<string> for navigation history
 #endif
 
 namespace Dimmer_MAUI;
-
 public partial class AppShell : Shell
 {
 
     public AppShell(HomePageVM vm)
     {
+        MyViewModel = vm;
+        BindingContext = vm;
         InitializeComponent();
 
         Routing.RegisterRoute(nameof(MainPageD), typeof(MainPageD));
         Routing.RegisterRoute(nameof(SingleSongShellPageD), typeof(SingleSongShellPageD));
         Routing.RegisterRoute(nameof(PlaylistsPageD), typeof(PlaylistsPageD));
         Routing.RegisterRoute(nameof(ArtistsPageD), typeof(ArtistsPageD));
+        Routing.RegisterRoute(nameof(AlbumsPageD), typeof(AlbumsPageD));
         Routing.RegisterRoute(nameof(FullStatsPageD), typeof(FullStatsPageD));
         Routing.RegisterRoute(nameof(SingleSongStatsPageD), typeof(SingleSongStatsPageD));
         Routing.RegisterRoute(nameof(SettingsPageD), typeof(SettingsPageD));
         Routing.RegisterRoute(nameof(LandingPageD), typeof(LandingPageD));
 
-        Vm = vm;
         //#if WINDOWS
 
         //        // Subscribe to events
@@ -36,42 +39,68 @@ public partial class AppShell : Shell
         //        this.Unfocused += AppShell_Unfocused;
 
         //#endif
-        BindingContext = vm;
         //currentPage = Current.CurrentPage;
     }
 
-    public HomePageVM Vm { get; }
+    public HomePageVM MyViewModel { get; }
 
     private async void NavToSingleSongShell_Tapped(object sender, Microsoft.Maui.Controls.TappedEventArgs e)
     {
-        await Vm.NavToSingleSongShell();
+        await MyViewModel.NavToSingleSongShell();
     }
+
+    private void SongsColView_Loaded(object sender, EventArgs e)
+    {
+        try
+        {
+            if (MyViewModel.PickedSong is null || MyViewModel.TemporarilyPickedSong is null)
+            {
+                return;
+            }
+            MyViewModel.PickedSong = MyViewModel.TemporarilyPickedSong;
+
+            if (SongsColView is not null && MyViewModel.CurrentAppState == AppState.OnForeGround)
+            {
+                SongsColView.ScrollTo(MyViewModel.TemporarilyPickedSong, position: ScrollToPosition.Start, animate: false);
+            }
+            
+            MyViewModel.PartOfNowPlayingSongsCV = SongsColView;
+
+            MyViewModel.UpdateContextMenuData(MyViewModel.MySelectedSong);
+
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Error when scrolling " + ex.Message);
+        }
+    }
+
+
 
     private async void MultiSelect_TouchDown(object sender, EventArgs e)
     {
-        switch (Vm.CurrentPage)
+        switch (MyViewModel.CurrentPage)
         {
             case PageEnum.MainPage:
                 var mainPage = Current.CurrentPage as MainPageD;
-                if (Vm.DisplayedSongs.Count<1)
+                if (MyViewModel.DisplayedSongs.Count < 1)
                 {
                     return;
                 }
                 mainPage!.ToggleMultiSelect_Clicked(sender, e);
-                if (Vm.IsMultiSelectOn)
+                if (MyViewModel.IsMultiSelectOn)
                 {
                     GoToSong.IsEnabled = false;
-                    Vm.ToggleFlyout(true);
+                    //MyViewModel.ToggleFlyout(true);
                     GoToSong.Opacity = 0.4;
-                    await Task.WhenAll(
-                     MultiSelectView.AnimateFadeInFront());
+                    await Task.WhenAll(MultiSelectView.AnimateFadeInFront());
                 }
                 else
                 {
-                    Vm.MultiSelectText = string.Empty;
+                    MyViewModel.MultiSelectText = string.Empty;
                     GoToSong.IsEnabled = true;
                     GoToSong.Opacity = 1;
-                    Vm.ToggleFlyout(false);
+                    //MyViewModel.ToggleFlyout(false);
                     await Task.WhenAll(MultiSelectView.AnimateFadeOutBack());
                 }
                 break;
@@ -81,7 +110,7 @@ public partial class AppShell : Shell
                 break;
             case PageEnum.FullStatsPage:
                 break;
-            case PageEnum.AllAlbumsPage:
+            case PageEnum.AllArtistsPage:
                 break;
             case PageEnum.SpecificAlbumPage:
                 break;
@@ -92,7 +121,13 @@ public partial class AppShell : Shell
 
     private void SfEffectsView_TouchDown(object sender, EventArgs e)
     {
+#if WINDOWS
+        var send = (SfEffectsView)sender;
+        var song = send.TouchDownCommandParameter as SongModelView; 
 
+        MyViewModel.MySelectedSong = song;
+
+#endif
     }
 
 #if WINDOWS
@@ -141,7 +176,6 @@ public partial class AppShell : Shell
         }
     }
 
-    public HomePageVM HomePageVM { get; set; }
     Type[] targetPages = new[] { typeof(PlaylistsPageD), typeof(ArtistsPageD), typeof(FullStatsPageD), typeof(SettingsPageD) };
     Page currentPage = new();
 
@@ -302,7 +336,7 @@ public partial class AppShell : Shell
         var vmm = IPlatformApplication.Current!.Services.GetService<PlaybackUtilsService>();
         if (vm != null)
         {
-            vm.CurrentAppState = AppState.OnForeGround;
+            MyViewModel.CurrentAppState = AppState.OnForeGround;
         }
         if (vmm != null)
         {
@@ -316,7 +350,7 @@ public partial class AppShell : Shell
         var vmm = IPlatformApplication.Current!.Services.GetService<PlaybackUtilsService>();
         if (vm != null)
         {
-            vm.CurrentAppState = AppState.OnBackGround;
+            MyViewModel.CurrentAppState = AppState.OnBackGround;
         }
         if (vmm != null)
         {
@@ -342,14 +376,152 @@ public partial class AppShell : Shell
 #endif
     }
 
+    private void Grid_Loaded(object sender, EventArgs e)
+    {
+
+    }
+
+    private void Grid_Unloaded(object sender, EventArgs e)
+    {
+
+    } 
+    private void PlaySong_Tapped(object sender, TappedEventArgs e)
+    {
+        var send = (View)sender;
+        var song = (SongModelView)send.BindingContext;
+        if (song is not null)
+        {
+            song.IsCurrentPlayingHighlight = false;
+        }
+
+        MyViewModel.PlaySong(song);
+    }
+
+
+
+
+    private void UserHoverOnSongInColView(object sender, Microsoft.Maui.Controls.PointerEventArgs e)
+    {
+        try
+        {
+            if (MyViewModel.MySelectedSong is null || MyViewModel.TemporarilyPickedSong is null)
+            {
+                return;
+            }
+            MyViewModel.PickedSong = MyViewModel.MySelectedSong;
+
+            //SongsColView.ScrollTo(MyViewModel.MySelectedSong, position: ScrollToPosition.Start, animate: true);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Error when scrolling " + ex.Message);
+        }
+        var send = (View)sender;
+        var song = send.BindingContext! as SongModelView;
+        //MyViewModel.SetContextMenuSong(song!);
+        send.BackgroundColor = Microsoft.Maui.Graphics.Colors.Transparent;
+        //isPointerEntered = true;
+        //isPointerEntered = true;
+    }
+
+    private void UserHoverOutSongInColView(object sender, Microsoft.Maui.Controls.PointerEventArgs e)
+    {
+        var send = (View)sender;
+        send.BackgroundColor = Microsoft.Maui.Graphics.Colors.Transparent;
+
+    }
+
+    private void AddPlayNextEff_TouchDown(object sender, EventArgs e)
+    {
+        MyViewModel.AddNextInQueue(MyViewModel.MySelectedSong);
+    }
+
+    private void AddToPlaylist_Tapped(object sender, TappedEventArgs e)
+    {
+        CreateNewPlayListPageBtmSheet.IsVisible = false;
+        AddSongToPlayListPageBtmSheet.IsVisible = true;
+    }
+    private void ShowPlaylistCreationBtmPage_Clicked(object sender, EventArgs e)
+    {
+        AddSongToPlayListPageBtmSheet.IsVisible = false;
+        CreateNewPlayListPageBtmSheet.IsVisible = true;
+    }
+
+    private void CancelAddSongToPlaylist_Clicked(object sender, EventArgs e)
+    {
+        //this.Close();
+    }
+
+    private void CancelCreateNewPlaylist_Clicked(object sender, EventArgs e)
+    {
+        CreateNewPlayListPageBtmSheet.IsVisible = false;
+        AddSongToPlayListPageBtmSheet.IsVisible = true;
+    }
+
+    private void CreatePlaylistBtn_Clicked(object sender, EventArgs e)
+    {
+        MyViewModel.CreatePlaylistAndAddSongCommand.Execute(NewPlaylistName.Text);
+        //this.Close();
+    }
+    private void CloseBtmSheet_Tapped(object sender, TappedEventArgs e)
+    {
+        //this.Close();
+    }
+
+    private void PlaylistsCV_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+    {
+
+    }
+
+    private void TabView_SelectionChanged(object sender, Syncfusion.Maui.Toolkit.TabView.TabSelectionChangedEventArgs e)
+    {
+        switch (e.NewIndex)
+        {
+            case 0:
+                break;
+            case 1:
+                if (MyViewModel.AllSyncLyrics is not null)
+                {
+                    MyViewModel.AllSyncLyrics = new();
+                }
+                break;
+            case 2:
+                break;
+            default:
+
+                break;
+        }
+        if (e.NewIndex == 2)
+        {
+            MyViewModel.ShowSingleSongStatsCommand.Execute(MyViewModel.MySelectedSong);
+        }
+    }
+
+    private void DeleteSongEff_TouchDown(object sender, EventArgs e)
+    {
+        MyViewModel.DeleteFileCommand.Execute(MyViewModel.MySelectedSong);
+    }
+
+    private void GoToArtistPageEff_TouchDown(object sender, EventArgs e)
+    {
+
+    }
+
+    private void GoToAlbumPageEff_TouchDown(object sender, EventArgs e)
+    {
+
+    }
 }
 
 public enum PageEnum
 {
+    SetupPage,
+    SettingsPage,
     MainPage,
     NowPlayingPage,
     PlaylistsPage,
     FullStatsPage,
+    AllArtistsPage,
     AllAlbumsPage,
     SpecificAlbumPage
 }

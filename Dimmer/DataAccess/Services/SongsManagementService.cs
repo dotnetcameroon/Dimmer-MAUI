@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace Dimmer_MAUI.DataAccess.Services;
+﻿namespace Dimmer_MAUI.DataAccess.Services;
 
 public partial class SongsManagementService : ISongsManagementService, IDisposable
 {
@@ -12,10 +9,10 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
     public List<PlaylistSongLink> AllPLSongLinks { get; set; }
     HomePageVM ViewModel { get; set; }
 
-
     public List<AlbumModelView> AllAlbums { get; set; }
     public List<ArtistModelView> AllArtists { get; set; }
     public List<GenreModelView> AllGenres { get; set; }
+    public List<AlbumArtistGenreSongLinkView> AllLinks { get; set; } = new();
     public IDataBaseService DataBaseService { get; }
 
 
@@ -32,7 +29,6 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
     {        
         ViewModel = vm;
     }
-    public List<AlbumArtistGenreSongLinkView> AllLinks { get; set; } = new();
 
     bool isSyncingOnline;
 
@@ -54,6 +50,7 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
 
         GetSongs();
     }
+
     public void GetSongs()
     {
         try
@@ -130,6 +127,37 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
             throw new Exception(ex.Message);
         }
     }
+    public void GetGenres()
+    {
+        db = Realm.GetInstance(DataBaseService.GetRealm());
+        AllGenres?.Clear();
+        var realmSongs = db.All<GenreModel>().ToList();
+        AllGenres = new List<GenreModelView>(realmSongs.Select(genre => new GenreModelView(genre)).OrderBy(x => x.Name));
+    }
+    public void GetArtists()
+    {
+        try
+        {
+            db = Realm.GetInstance(DataBaseService.GetRealm());
+            var realmArtists = db.All<ArtistModel>().ToList();
+
+            AllArtists = new List<ArtistModelView>(realmArtists.Select(artist => new ArtistModelView(artist)).OrderBy(x => x.Name));
+            AllArtists ??= Enumerable.Empty<ArtistModelView>().ToList();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error getting Artists: {ex.Message}");
+        }
+    }
+
+    public void GetAlbums()
+    {
+        db = Realm.GetInstance(DataBaseService.GetRealm());
+        AllAlbums?.Clear();
+        var realmAlbums = db.All<AlbumModel>().ToList();
+        AllAlbums = new List<AlbumModelView>(realmAlbums.Select(album => new AlbumModelView(album)).OrderBy(x=>x.Name));
+
+    }
 
     public void AddPlayData(string songId, PlayDataLink playData)
     {
@@ -141,7 +169,7 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
             songView.NumberOfTimesPlayed = songView.PlayData.Count;
             songView.NumberOfTimesPlayedCompletely = songView.PlayData.Count(p => p.WasPlayCompleted);
         }
-
+        
         // 2. Save to the database (Realm) separately
         using (var realm = Realm.GetInstance(DataBaseService.GetRealm()))
         {
@@ -164,37 +192,6 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
     }
 
 
-    public void GetGenres()
-    {
-        db = Realm.GetInstance(DataBaseService.GetRealm());
-        AllGenres?.Clear();
-        var realmSongs = db.All<GenreModel>().ToList();
-        AllGenres = new List<GenreModelView>(realmSongs.Select(genre => new GenreModelView(genre)));
-    }
-    public void GetArtists()
-    {
-        try
-        {
-            db = Realm.GetInstance(DataBaseService.GetRealm());
-            var realmArtists = db.All<ArtistModel>().ToList();
-
-            AllArtists = new List<ArtistModelView>(realmArtists.Select(artist => new ArtistModelView(artist)));
-            AllArtists ??= Enumerable.Empty<ArtistModelView>().ToList();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error getting Artists: {ex.Message}");
-        }
-    }
-
-    public void GetAlbums()
-    {
-        db = Realm.GetInstance(DataBaseService.GetRealm());
-        AllAlbums?.Clear();
-        var realmAlbums = db.All<AlbumModel>().ToList();
-        AllAlbums = new List<AlbumModelView>(realmAlbums.Select(album => new AlbumModelView(album)));
-
-    }
     List<AlbumModel>? realmAlbums { get; set; }
     List<SongModel>? realmSongs { get; set; }
     List<GenreModel>? realGenres { get; set; }
@@ -806,11 +803,15 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
                 if (existingAlbum != null)
                 {
                     existingAlbum.ImagePath = album.AlbumImagePath;
+                    existingAlbum.NumberOfTracks = album.NumberOfTracks;
+                    existingAlbum.TotalDuration = album.TotalDuration;
+                    existingAlbum.Description = album.Description;
+                    db.Add(existingAlbum, update: true);
                 }
                 else
                 {
                     var newSong = new AlbumModel(album);
-                    db.Add(newSong, update: true);
+                    db.Add(newSong);
                 }
             });
 
@@ -952,51 +953,52 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
 
     public static bool InitializeParseClient()
     {
-        try
-        {
-            // Check for internet connection
-            if (Connectivity.NetworkAccess != NetworkAccess.Internet)
-            {
-                Debug.WriteLine("No Internet Connection: Unable to initialize ParseClient.");
-                return false;
-            }
+        return false;
+        //try
+        //{
+        //    // Check for internet connection
+        //    if (Connectivity.NetworkAccess != NetworkAccess.Internet)
+        //    {
+        //        Debug.WriteLine("No Internet Connection: Unable to initialize ParseClient.");
+        //        return false;
+        //    }
 
-            // Validate API Keys
-            if (string.IsNullOrEmpty(APIKeys.ApplicationId) ||
-                string.IsNullOrEmpty(APIKeys.ServerUri) ||
-                string.IsNullOrEmpty(APIKeys.DotNetKEY))
-            {
-                Debug.WriteLine("Invalid API Keys: Unable to initialize ParseClient.");
-                return false;
-            }
+        //    // Validate API Keys
+        //    if (string.IsNullOrEmpty(APIKeys.ApplicationId) ||
+        //        string.IsNullOrEmpty(APIKeys.ServerUri) ||
+        //        string.IsNullOrEmpty(APIKeys.DotNetKEY))
+        //    {
+        //        Debug.WriteLine("Invalid API Keys: Unable to initialize ParseClient.");
+        //        return false;
+        //    }
 
-            // Create ParseClient
-            ParseClient client = new ParseClient(new ServerConnectionData
-            {
-                ApplicationID = APIKeys.ApplicationId,
-                ServerURI = APIKeys.ServerUri,
-                Key = APIKeys.DotNetKEY,
-            }
-            );
+        //    // Create ParseClient
+        //    ParseClient client = new ParseClient(new ServerConnectionData
+        //    {
+        //        ApplicationID = APIKeys.ApplicationId,
+        //        ServerURI = APIKeys.ServerUri,
+        //        Key = APIKeys.DotNetKEY,
+        //    }
+        //    );
 
-            HostManifestData manifest = new HostManifestData()
-            {
-                Version = "1.0.0",
-                Identifier = "com.yvanbrunel.dimmer",
-                Name = "Dimmer",
-            };
+        //    HostManifestData manifest = new HostManifestData()
+        //    {
+        //        Version = "1.0.0",
+        //        Identifier = "com.yvanbrunel.dimmer",
+        //        Name = "Dimmer",
+        //    };
 
-            client.Publicize();
+        //    client.Publicize();
 
 
-            Debug.WriteLine("ParseClient initialized successfully.");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error initializing ParseClient: {ex.Message}");
-            return false;
-        }
+        //    Debug.WriteLine("ParseClient initialized successfully.");
+        //    return true;
+        //}
+        //catch (Exception ex)
+        //{
+        //    Debug.WriteLine($"Error initializing ParseClient: {ex.Message}");
+        //    return false;
+        //}
     }
     
     public async Task<bool> LoadSongsFromFolderAsync(List<string> folderPaths)
@@ -1045,7 +1047,7 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
         return true;
     }
 
-    public async void OpenConnectPopup()
+    public async Task OpenConnectPopup()
     {
         ConnectOnline();
 
@@ -1150,6 +1152,10 @@ public partial class SongsManagementService : ISongsManagementService, IDisposab
 
         try
         {
+            if (model.LocalDeviceId is null)
+            {
+                model.LocalDeviceId = GeneralStaticUtilities.GenerateLocalDeviceID("PDL");
+            }
             db = Realm.GetInstance(DataBaseService.GetRealm());
             db.Write(() =>
             {                

@@ -5,7 +5,7 @@
               xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"
              xmlns:models="clr-namespace:Dimmer_MAUI.Utilities.Models"
              x:DataType="vm:HomePageVM" 
-            xmlns:m="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+            
             xmlns:dx="http://schemas.devexpress.com/maui"
             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
             xmlns:viewsM="clr-namespace:Dimmer_MAUI.Views.Mobile"  
@@ -33,11 +33,10 @@
                           IsVisible="True" Opacity="0.7" >
 
                     <HorizontalStackLayout Margin="55,0" BackgroundColor="Transparent"
-                                           VerticalOptions="Center">
-                        <Image>
-                            <Image.Source>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Play_circle}"/>
-                            </Image.Source>
+                                           VerticalOptions="Center"
+                                           >
+                        <Image Source="playcircle.png">
+                            
                         </Image>
                         <Label Text="Dimmer" VerticalTextAlignment="Center"  FontSize="28"
                     FontAttributes="Bold"/>
@@ -45,20 +44,20 @@
                     <!-- Album Cover -->
                     <toolkit:AvatarView x:Name="AlbumCover" 
                                     CornerRadius="15" BorderWidth="0"
-                                    ImageSource="{Binding SelectedSongToOpenBtmSheet.CoverImagePath}"
+                                    ImageSource="{Binding MySelectedSong.CoverImagePath}"
                                     HeightRequest="300" WidthRequest="300"
                                     VerticalOptions="Center" HorizontalOptions="Center"
                                     Opacity="0.7" Stroke="Black">
                     </toolkit:AvatarView>
 
                     <Label x:Name="SongTitle" FontSize="28" LineBreakMode="TailTruncation" 
-                       FontAttributes="Bold" Text="{Binding SelectedSongToOpenBtmSheet.Title}"
+                       FontAttributes="Bold" Text="{Binding MySelectedSong.Title}"
                        TextColor="White" HorizontalOptions="Center" HorizontalTextAlignment="Justify"/>
                     <Label Text="by" TextColor="White" HorizontalOptions="Center"/>
                     <!-- Artist Name -->
-                    <Label x:Name="ArtistName" FontSize="18"
+                    <Label x:Name="ArtistName" FontSize="16"
                        TextColor="White" HorizontalOptions="Center"
-                       Text="{Binding SelectedSongToOpenBtmSheet.ArtistName}" 
+                       Text="{Binding MySelectedSong.ArtistName}" 
                        VerticalOptions="Start"/>
 
                 </VerticalStackLayout>
@@ -69,10 +68,8 @@
 
                     </VerticalStackLayout.GestureRecognizers>
                     <HorizontalStackLayout Grid.Row="0" BackgroundColor="Transparent">
-                        <Image >
-                            <Image.Source>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Play_circle}"/>
-                            </Image.Source>
+                        <Image Source="play.png" >
+                            
                         </Image>
                         <Label Text="Dimmer" VerticalTextAlignment="Center"
                                FontSize="22" FontAttributes="Bold"
@@ -85,20 +82,20 @@
                         <dx:DXBorder.Content>
                             <Grid ColumnDefinitions="Auto,*,Auto" BackgroundColor="White">
 
-                                <toolkit:AvatarView Grid.Column="0" ImageSource="{Binding SelectedSongToOpenBtmSheet.CoverImagePath}"
+                                <toolkit:AvatarView Grid.Column="0" ImageSource="{Binding MySelectedSong.CoverImagePath}"
                             WidthRequest="130" HeightRequest="130"
                             CornerRadius="10" HorizontalOptions="Start"/>
 
                                 <VerticalStackLayout Grid.ColumnSpan="2" BackgroundColor="Transparent"
                                                      Grid.Column="1" VerticalOptions="Center">
-                                    <Label x:Name="SongTitlesmol" FontSize="23" 
-           FontAttributes="Bold" Text="{Binding SelectedSongToOpenBtmSheet.Title}"
+                                    <Label x:Name="SongTitlesmol" FontSize="16" 
+           FontAttributes="Bold" Text="{Binding MySelectedSong.Title}"
            TextColor="Black" HorizontalOptions="Center"/>
                                     <Label Text="by" TextColor="Black" HorizontalOptions="Center"/>
                                     <!-- Artist Name -->
                                     <Label x:Name="ArtistNamesmol" FontSize="17"
            TextColor="Black" HorizontalOptions="Center"
-           Text="{Binding SelectedSongToOpenBtmSheet.ArtistName}" 
+           Text="{Binding MySelectedSong.ArtistName}" 
            />
 
                                 </VerticalStackLayout>
@@ -147,10 +144,8 @@
              IconWidth="25" IconHeight="40" VerticalOptions="End"
              HorizontalOptions="End" IconColor="White"
                              PressedBackgroundColor="DarkSlateBlue"
-             Margin="15,0" Clicked="UtilsHSL_Clicked" >
-                <dx:DXButton.Icon>
-                    <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Settings}"/>
-                </dx:DXButton.Icon>
+             Margin="15,0" Clicked="UtilsHSL_Clicked" Icon="settings.png" >
+                
             </dx:DXButton>
             <viewsM:EachPageNPFAB_Mobile />
 
@@ -165,7 +160,7 @@
                               ItemSpacing="15">
                 <HorizontalStackLayout HorizontalOptions="Center" BackgroundColor="Transparent">
                     <Label Text="Toolbox !" HorizontalOptions="Center"
-                           FontSize="24" HorizontalTextAlignment="Center"/>
+                           FontSize="16" HorizontalTextAlignment="Center"/>
                 </HorizontalStackLayout>
                 <dx:DXStackLayout BorderColor="DarkSlateBlue" BorderThickness="0.4"
                                   CornerRadius="15" Padding="0,15">
@@ -175,24 +170,20 @@
                                     AllowDeselect="True" BoxMode="Outlined"
                                     ChipTap="ToggleBGImg_ChipTap">
                         <dx:Chip Text="None!">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.No_photography}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                         <dx:Chip Text="Cover Image">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Music_note}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                         <dx:Chip Text="Single Photo">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Photo}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                         <dx:Chip Text="Photo Dump !" IsVisible="False">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Photo_album}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                     </dx:ChoiceChipGroup>
 
@@ -211,19 +202,16 @@
                                     BoxMode="Outlined"
                                     ChipTap="ToggleSongCard_ChipTap">
                         <dx:Chip Text="No Card">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Image_not_supported}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                         <dx:Chip Text="Smol Card">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Photo}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                         <dx:Chip Text="Big Card">
-                            <dx:Chip.Icon>
-                                <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Full_coverage}"/>
-                            </dx:Chip.Icon>
+                            
+                            
                         </dx:Chip>
                        
                     </dx:ChoiceChipGroup>
@@ -235,11 +223,9 @@
                              BackgroundColor="DarkSlateBlue" Clicked="OnShareButtonClicked" 
                              ShowContent="False" ButtonType="Filled" HeightRequest="60"
                              IconWidth="40" IconHeight="40"
-                             Content="Share!">
+                             Content="Share!"
+                             Icon="shared.png">
                     
-                    <dx:DXButton.Icon>
-                        <FontImageSource FontFamily="MaterialRounded" Glyph="{Static m:MaterialRounded.Share}"/>
-                    </dx:DXButton.Icon>
                 </dx:DXButton>
             </dx:DXStackLayout>
         </dx:BottomSheet>

@@ -73,12 +73,21 @@ public partial class HomePageVM : ObservableObject
         Dictionary<string, string> tempDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (AlbumArtistGenreSongLinkView? link in AllLinks.Where(link => !string.IsNullOrEmpty(link.SongId) && !string.IsNullOrEmpty(link.ArtistId)))
         {
-            string artistName = AllArtists
-                .FirstOrDefault(artist => artist.LocalDeviceId.Equals(link.ArtistId, StringComparison.OrdinalIgnoreCase))?.Name ?? "Unknown";
-
+            string itemName = "Unknown";
+            foreach (var item in AllArtists)
+            {
+                if (item.LocalDeviceId is not null)
+                {
+                    if (item.LocalDeviceId.Equals(link.AlbumId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        itemName = item.Name;
+                        break;
+                    }
+                }
+            }
             if (!tempDictionary.ContainsKey(link.SongId.ToLower()))
             {
-                tempDictionary[link.SongId] = artistName.ToLower();
+                tempDictionary[link.SongId] = itemName.ToLower();
             }
         }
 
@@ -97,8 +106,18 @@ public partial class HomePageVM : ObservableObject
         Dictionary<string, string> tempDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (AlbumArtistGenreSongLinkView? link in AllLinks.Where(link => !string.IsNullOrEmpty(link.SongId) && !string.IsNullOrEmpty(link.AlbumId)))
         {
-            string albumName = AllAlbums
-                .FirstOrDefault(album => album.LocalDeviceId.Equals(link.AlbumId, StringComparison.OrdinalIgnoreCase))?.Name ?? "Unknown";
+            string albumName = "Unknown";
+            foreach (var album in AllAlbums)
+            {
+                if (album.LocalDeviceId is not null)
+                {
+                    if (album.LocalDeviceId.Equals(link.AlbumId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        albumName = album.Name;
+                        break;
+                    }
+                }
+            }
 
             if (!tempDictionary.TryGetValue(link.SongId.ToLower(), out string? value))
             {
@@ -115,10 +134,11 @@ public partial class HomePageVM : ObservableObject
     #region Data Loading
     public void LoadData()
     {
-        AllPlayDataLinks = SongsMgtService.AllPlayDataLinks.ToList();
-        AllLinks = SongsMgtService.AllLinks;
         if (SongsMgtService.AllSongs == null || SongsMgtService.AllSongs.Count < 1)
             return;
+
+        AllPlayDataLinks = SongsMgtService.AllPlayDataLinks.ToList();
+        AllLinks = SongsMgtService.AllLinks;
 
         _songIdToTitleMap = SongsMgtService.AllSongs
             .ToDictionary(s => s.LocalDeviceId!.ToLower(), s => s.Title, StringComparer.OrdinalIgnoreCase)!;
@@ -325,65 +345,74 @@ public partial class HomePageVM : ObservableObject
     public partial ObservableCollection<DimmData> BiggestClimbers { get; set; }
     public void GetBiggestClimbers(List<PlayDataLink> playData, int top = 20, bool isAscend = false, int month = 0, int year = 0)
     {
-        if (playData == null || !playData.Any())
+        try
         {
-            BiggestClimbers.Clear();
-            return;
+
+            if (playData == null || !playData.Any())
+            {
+                BiggestClimbers.Clear();
+                return;
+            }
+
+            int currentMonth = month;
+            int currentYear = year;
+            int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+            int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+
+            var currentMonthPlays = playData
+                .Where(p => p.DateFinished.Year == currentYear && p.DateFinished.Month == currentMonth && p.SongId != null)
+                .GroupBy(p => p.SongId, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() >= 3)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var previousMonthPlays = playData
+                .Where(p => p.DateFinished.Year == previousYear && p.DateFinished.Month == previousMonth && p.SongId != null)
+                .GroupBy(p => p.SongId, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() >= 5)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var allSongIdsToConsider = currentMonthPlays.Keys.Union(previousMonthPlays.Keys).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            var climbers = new List<(string SongId, string SongTitle, string ArtistName, int PreviousMonthDimms, int CurrentMonthDimms, int RankChange)>();
+
+            foreach (var songId in allSongIdsToConsider)
+            {
+                currentMonthPlays.TryGetValue(songId, out int currentDimms);
+                previousMonthPlays.TryGetValue(songId, out int prevDimms);
+                int rankChange = currentDimms - prevDimms;
+
+                string songTitle = _songIdToTitleMap.TryGetValue(songId, out string title) ? title : "Unknown Title";
+                string artistName = _songIdToArtistMap.TryGetValue(songId, out string artist) ? artist : "Unknown Artist";
+                climbers.Add((SongId: songId, songTitle, artistName, prevDimms, currentDimms, rankChange));
+            }
+
+            var sortedClimbers = isAscend
+                ? climbers.OrderBy(c => c.RankChange)
+                : climbers.OrderByDescending(c => c.RankChange);
+
+            IEnumerable<DimmData> dimmDataQuery = sortedClimbers.Select(kvp => new DimmData
+            {
+                SongId = kvp.SongId,
+                SongTitle = kvp.SongTitle,
+                PreviousMonthDimms = kvp.PreviousMonthDimms,
+                CurrentMonthDimms = kvp.CurrentMonthDimms,
+                RankChange = kvp.RankChange,
+                ArtistName = kvp.ArtistName
+            });
+
+            if (top == 9999999)
+            {
+                BiggestClimbers = new ObservableCollection<DimmData>(dimmDataQuery.Take(20).ToObservableCollection());
+            }
+            else
+            {
+                BiggestClimbers = new ObservableCollection<DimmData>(dimmDataQuery.Take(top).ToObservableCollection());
+            }
         }
-
-        int currentMonth = month;
-        int currentYear = year;
-        int previousMonth = currentMonth == 1 ? 12 : currentMonth - 1;
-        int previousYear = currentMonth == 1 ? currentYear - 1 : currentYear;
-
-        var currentMonthPlays = playData
-            .Where(p => p.DateFinished.Year == currentYear && p.DateFinished.Month == currentMonth)
-            .GroupBy(p => p.SongId , StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() >= 3)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
-
-        var previousMonthPlays = playData
-            .Where(p => p.DateFinished.Year == previousYear && p.DateFinished.Month == previousMonth)
-            .GroupBy(p => p.SongId, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() >= 5)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
-
-        var allSongIdsToConsider = currentMonthPlays.Keys.Union(previousMonthPlays.Keys).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-        var climbers = new List<(string SongId, string SongTitle, string ArtistName, int PreviousMonthDimms, int CurrentMonthDimms, int RankChange)>();
-
-        foreach (var songId in allSongIdsToConsider)
+        catch (Exception ex)
         {
-            currentMonthPlays.TryGetValue(songId, out int currentDimms);
-            previousMonthPlays.TryGetValue(songId, out int prevDimms);
-            int rankChange = currentDimms - prevDimms;
-
-            string songTitle = _songIdToTitleMap.TryGetValue(songId, out string title) ? title : "Unknown Title";
-            string artistName = _songIdToArtistMap.TryGetValue(songId, out string artist) ? artist : "Unknown Artist";
-            climbers.Add((SongId: songId, songTitle, artistName, prevDimms, currentDimms, rankChange));
-        }
-
-        var sortedClimbers = isAscend
-            ? climbers.OrderBy(c => c.RankChange)
-            : climbers.OrderByDescending(c => c.RankChange);
-
-        IEnumerable<DimmData> dimmDataQuery = sortedClimbers.Select(kvp => new DimmData
-        {
-            SongId = kvp.SongId,
-            SongTitle = kvp.SongTitle,
-            PreviousMonthDimms = kvp.PreviousMonthDimms,
-            CurrentMonthDimms = kvp.CurrentMonthDimms,
-            RankChange = kvp.RankChange,
-            ArtistName = kvp.ArtistName
-        });
-
-        if (top == 9999999)
-        {
-            BiggestClimbers = new ObservableCollection<DimmData>(dimmDataQuery.Take(20).ToObservableCollection());
-        }
-        else
-        {
-            BiggestClimbers = new ObservableCollection<DimmData>(dimmDataQuery.Take(top).ToObservableCollection());
+            Debug.WriteLine($"Biggest climbers Ex{ex.Message}");
+            
         }
     }
 

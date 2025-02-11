@@ -48,7 +48,7 @@
     <IsAotCompatible>True</IsAotCompatible>
 
     <OutputType>Exe</OutputType>
-
+    <AndroidLinkSkip>Realm</AndroidLinkSkip>
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows10.0.19041.0|AnyCPU'">
@@ -56,24 +56,25 @@
     <ApplicationTitle>Dimmer</ApplicationTitle>
     <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
   </PropertyGroup>
-
+  
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-android|AnyCPU'">
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AndroidKeyStore>False</AndroidKeyStore>
     <ApplicationId>com.yvanbrunel.dimmermaui</ApplicationId>
     <ApplicationTitle>Dimmer</ApplicationTitle>
+    <AndroidLinkMode>SdkOnly </AndroidLinkMode>
+    
+    
   </PropertyGroup>
 
   <PropertyGroup>
     <RollForward>Major</RollForward>
     <AndroidSigningKeyStore>YBTopaz8.keystore</AndroidSigningKeyStore>
+    <DefaultLanguage>en-US</DefaultLanguage>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-windows10.0.19041.0'">
     <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
   </PropertyGroup>
-
-
-
 
 
 
@@ -131,6 +132,9 @@
     <AndroidKeyStore>False</AndroidKeyStore>
     <AndroidSigningStorePass>YBTopaz8!</AndroidSigningStorePass>
     <AndroidSigningKeyPass>YBTopaz8</AndroidSigningKeyPass>
+    <EnableLLVM>True</EnableLLVM>
+    <RunAOTCompilation>False</RunAOTCompilation>
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-android35.0|AnyCPU'">
     <AndroidUseAapt2>True</AndroidUseAapt2>
@@ -139,6 +143,7 @@
     <AndroidKeyStore>False</AndroidKeyStore>
     <AndroidSigningStorePass>YBTopaz8!</AndroidSigningStorePass>
     <AndroidSigningKeyPass>YBTopaz8</AndroidSigningKeyPass>
+    <EnableLLVM>True</EnableLLVM>
   </PropertyGroup>
   <ItemGroup>
     <!-- App Icon -->
@@ -164,8 +169,11 @@
     <None Remove="Resources\Images\youtube.svg" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Maui" Version="10.0.0" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="11.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    
+    <!--<PackageReference Include="CSCore" Version="1.2.1.2" />-->
+    
     <PackageReference Include="DevExpress.Maui.CollectionView" Version="24.2.3" />
     <PackageReference Include="DevExpress.Maui.Controls" Version="24.2.3" />
     <PackageReference Include="DevExpress.Maui.Core" Version="24.2.3" />
@@ -175,19 +183,17 @@
     
     <!--<PackageReference Include="Hqub.Last.fm" Version="2.5.0" />-->
     
-    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.21" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.21" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.30" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.30" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.1" />
+    <!--<PackageReference Include="SpotifyAPI.Web" Version="7.2.1" />-->
     <PackageReference Include="Syncfusion.Maui.Toolkit" Version="1.0.3" />
     <!--<PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />-->
-    <PackageReference Include="Realm" Version="20.0.0" />
-    
-    <PackageReference Include="UraniumUI.Icons.FontAwesome" Version="2.11.0" />
-    <PackageReference Include="UraniumUI.Icons.MaterialSymbols" Version="2.11.0" />
-    <PackageReference Include="YB.ParseLiveQueryDotNet" Version="3.0.3" />
+    <PackageReference Include="Realm" Version="20.1.0" />
+    <PackageReference Include="YB.ParseLiveQueryDotNet" Version="3.1.0" />
     
     
-    <PackageReference Include="z440.atl.core" Version="6.11.0" />
+    <PackageReference Include="z440.atl.core" Version="6.16.0" />
 
   </ItemGroup>
 
@@ -207,6 +213,9 @@
     <MauiXaml Update="CustomPopUpViews\SleepTimerSelectionPopup.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
+    <MauiXaml Update="CustomPopUpViews\SongContextMenuPopupView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
     <MauiXaml Update="CustomPopUpViews\SongToPlaylistPopup.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
@@ -222,6 +231,9 @@
     <MauiXaml Update="CustomPopUpViews\EditSongPopup.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
+    <MauiXaml Update="Views\Desktop\AlbumsPageD.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\DimmerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
@@ -235,9 +247,6 @@
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\MiniControlNotificationView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Views\Desktop\CustomViews\PlayPauseView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\SongTagsView.xaml">
@@ -314,6 +323,9 @@
     </MauiXaml>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Views\Desktop\AlbumsPageD.xaml.cs">
+      <DependentUpon>AlbumsPageD.xaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\Desktop\FullStatsPageD.xaml.cs">
       <DependentUpon>FullStatsPageD.xaml</DependentUpon>
     </Compile>
@@ -327,6 +339,11 @@
   <ItemGroup>
     <Folder Include="Platforms\Android\CustomHandlers\" />
     <Folder Include="Utilities\OtherUtils\ParseStaticUtils\" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows10.0.19041.0'">
+    <PackageReference Include="WinUI.TableView">
+      <Version>1.2.2</Version>
+    </PackageReference>
   </ItemGroup>
   <ProjectExtensions>
     <VisualStudio>

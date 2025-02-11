@@ -1,20 +1,21 @@
 ﻿using Android.Media;
 using Dimmer_MAUI.Platforms.Android.CurrentActivity;
 using Java.Lang;
+using Exception = Java.Lang.Exception;
 
 namespace Dimmer_MAUI.Platforms.Android.MAudioLib;
 
-public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
+public class DimmerAudioService : IDimmerAudioService, INotifyPropertyChanged
 {
-    static NativeAudioService current;
-    public static INativeAudioService Current => current ??= new NativeAudioService();
+    static DimmerAudioService current;
+    public static IDimmerAudioService Current => current ??= new DimmerAudioService();
     HomePageVM ViewModel { get; set; }
     IAudioActivity instance;
     double volume = 1;
     double balance = 0;
     bool muted = false;
     MediaPlay CurrentMedia { get; set; }
-    private MediaPlayer mediaPlayer
+    private MediaPlayer? mediaPlayer
     {
         get
         {
@@ -93,48 +94,48 @@ public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
 
     public event EventHandler<bool>? IsPlayingChanged;
     public event EventHandler? PlayEnded;
-    public event EventHandler? PlayNext;
-    public event EventHandler? PlayPrevious;
     public event EventHandler? NotificationTapped;
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<long>? IsSeekedFromNotificationBar;
+    public event EventHandler PlayPrevious;
+    public event EventHandler PlayNext;
 
-    public Task PauseAsync()
+    public void Pause()
     {        
         instance.Binder.GetMediaPlayerService().Pause();        
         IsPlaying = false;
         ViewModel.SetPlayerState(MediaPlayerState.Playing);
         ViewModel.SetPlayerState(MediaPlayerState.ShowPlayBtn);
-        return Task.CompletedTask;
+        
     }
-    public async Task ResumeAsync(double positionInSeconds)
+    public void Resume(double positionInSeconds)
     {
         var posInMs = positionInSeconds * 1000;
         
-        await instance.Binder.GetMediaPlayerService().Play();
-        await instance.Binder.GetMediaPlayerService().Seek((int)posInMs);    
+        instance.Binder.GetMediaPlayerService().Play();
+        instance.Binder.GetMediaPlayerService().Seek((int)posInMs);    
         
     }
 
-    public async Task PlayAsync(bool IsFromPreviousOrNext = false)
+    public void Play(bool IsFromPreviousOrNext = false)
     {
-            await instance.Binder.GetMediaPlayerService().Play();
+            instance.Binder.GetMediaPlayerService().Play();
      
         IsPlaying = true;
         ViewModel.SetPlayerState(MediaPlayerState.Playing);
         ViewModel.SetPlayerState(MediaPlayerState.ShowPauseBtn);
     }
 
-    Task SetMuted(bool value)
+    void SetMuted(bool value)
     {
         muted = value;
         if (value)
             mediaPlayer.SetVolume(0, 0);
         else
             SetVolume(volume, balance);
-        return Task.CompletedTask;
+        
     }
-    Task SetVolume(double volume, double balance)
+    void SetVolume(double volume, double balance)
     {
 
         //mediaPlayer?.SetVolume((float)1, (float)1);
@@ -151,30 +152,46 @@ public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
         //int scaledVolume = (int)Math.Round(volume);
         //aManager.SetStreamVolume(streamType, scaledVolume, VolumeNotificationFlags.RemoveSoundAndVibrate);
 
-        return Task.CompletedTask;
+        
     }
 
-    public async Task SetCurrentTime(double positionInSeconds)
+
+    public void SetCurrentTime(double positionInSeconds)
     {
-        var posInMs = (int)(positionInSeconds * 1000);
         if (mediaPlayer is null)
         {
             Debug.WriteLine("no media");
-            return ;
+            return;
         }
-        await instance.Binder.GetMediaPlayerService().Seek(posInMs);
-        IsPlaying = true;
-        return ;
 
+        // Get duration (replace with your actual method)
+        double duration = mediaPlayer.Duration; // You must implement this method or property
+
+        // Validate input, ensuring it's within a valid range.
+        double clampedPosition = Java.Lang.Math.Clamp(positionInSeconds, 0, duration);
+        var posInMs = (int)(clampedPosition * 1000);
+
+        try
+        {
+            instance.Binder.GetMediaPlayerService().Seek(posInMs);
+            IsPlaying = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error seeking: {ex.Message}");
+            IsPlaying = false; // Ensure IsPlaying is false if the seek fails
+                               // Consider other error handling, like showing an error message
+        }
     }
 
-    public Task DisposeAsync()
+
+    public void Dispose()
     {
         instance.Binder?.GetMediaPlayerService().Stop();
-        return Task.CompletedTask;
+        
     }
 
-    public void Initialize(SongModelView media, byte[]? ImageBytes=null)
+    public void Initialize(SongModelView? media, byte[]? ImageBytes=null)
     {
         ViewModel ??= IPlatformApplication.Current!.Services.GetService<HomePageVM>()!;
         CurrentMedia = new();
@@ -185,9 +202,9 @@ public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
                 CurrentMedia = new MediaPlay()
                 {
                     SongId = media.LocalDeviceId!,
-                    Name = media.Title,
+                    Name = media.Title!,
                     Author = media!.ArtistName!,
-                    URL = media.FilePath,
+                    URL = media.FilePath!,
                     ImagePath = media.CoverImagePath,
                     DurationInMs = (long)(media.DurationInSeconds * 1000),
                 };
@@ -217,17 +234,18 @@ public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
             mediaPlayerService.TaskPlayEnded -= PlayEnded;
             mediaPlayerService.TaskPlayNext -= PlayNext;
             mediaPlayerService.TaskPlayPrevious -= PlayPrevious;
+            mediaPlayerService.IsSeekedFromNotificationBar -= MediaPlayerService_IsSeekedFromNotificationBar;
 
             // Subscribe to events
             mediaPlayerService.IsPlayingChanged += IsPlayingChanged;
             mediaPlayerService.TaskPlayEnded += PlayEnded;
             mediaPlayerService.TaskPlayNext += PlayNext;
             mediaPlayerService.TaskPlayPrevious += PlayPrevious;
-
-            mediaPlayerService.PlayingChanged -= OnPlayingChanged; // Unsubscribe if previously subscribed
             mediaPlayerService.PlayingChanged += OnPlayingChanged;
             mediaPlayerService.IsSeekedFromNotificationBar += MediaPlayerService_IsSeekedFromNotificationBar;
         }
+
+        
     }
 
     private void MediaPlayerService_IsSeekedFromNotificationBar(object? sender, long e)
@@ -237,19 +255,36 @@ public class NativeAudioService : INativeAudioService, INotifyPropertyChanged
 
     private void OnPlayingChanged(object sender, bool isPlaying)
     {
-        Task.Run(async () =>
+        if (isPlaying)
         {
-            if (isPlaying)
-            {
-                await this.PlayAsync();
-                await this.SetCurrentTime(CurrentPosition);
-            }
-            else
-            {
-                await this.PauseAsync();
-            }
-        });
+            this.Play();
+            this.SetCurrentTime(CurrentPosition);
+        }
+        else
+        {
+            this.Pause();
+        }
+     
         IsPlayingChanged?.Invoke(this, isPlaying);
     }
 
+    public void ApplyEqualizerSettings(float[] bands)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ApplyEqualizerPreset(EqualizerPresetName presetName)
+    {
+        throw new NotImplementedException();
+    }
+
+    //public AudioDeviceModel? GetCurrentOutputDeviceAsync()
+    //{
+    //    throw new NotImplementedException();
+    //}
+
+    public Task<bool> SetOutputDeviceAsync(string deviceId)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Dimmer_MAUI.Views.Desktop.AlbumsPageD"
+            xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+            xmlns:converters="clr-namespace:Dimmer_MAUI.Utilities.TypeConverters"
+            x:DataType="vm:HomePageVM"
+             xmlns:cw="clr-namespace:Dimmer_MAUI.Views.CustomViews"
+            xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"             
+            xmlns:models="clr-namespace:Dimmer_MAUI.Utilities.Models"     
+             xmlns:syncf="http://schemas.syncfusion.com/maui/toolkit"                
+             x:Name="myPage" 
+            Shell.FlyoutBehavior="Flyout"
+    
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="True">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:DurationConverterFromMsToTimeSpan x:Key="DurationConverter"/>
+            <converters:BytesToMegabytesConverter x:Key="FileSizeConverter"/>
+            <converters:BytesArrayToImageSource x:Key="BytesToImageConverter"/>
+
+            <converters:BoolToInverseConverter x:Key="BoolToInverse"/>
+            <converters:IndexToVisibilityConverter x:Key="IndexToVisibilityConverter"/>
+            <converters:DateTimeToLocalDateConverter x:Key="DateTimeConverter"/>
+            <converters:DateTimeToLocalTimeConverter x:Key="DateTimeToTimeConverter"/>
+            <converters:BoolToYesNoConverter x:Key="BoolToYesNo"/>
+            <MenuFlyout x:Key="LyricsContentMenu">
+                <MenuFlyoutItem Text="Download Song Cover" Command="{Binding FetchSongCoverImageCommand}" CommandParameter="{Binding MySelectedSong}" x:DataType="vm:HomePageVM"/>
+                <MenuFlyoutItem Text="Show File in Folder" Command="{Binding OpenSongFolderCommand}"/>
+            </MenuFlyout>
+
+            <DataTemplate x:Key="itemTemplate" x:DataType="models:AlbumModelView">
+
+                <Border StrokeShape="RoundRectangle 15" Padding="5"
+                        x:Name="SpecificAlbum" >
+                    <Border.Resources>
+                        <ResourceDictionary>
+                            <!--<Style TargetType="Label">
+                                <Setter Property="FontSize" Value="16"/>
+                            </Style>-->
+                        </ResourceDictionary>
+                    </Border.Resources>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="ShowArtistAlbums_Tapped" NumberOfTapsRequired="1"/>
+                        <PointerGestureRecognizer PointerEntered="PointerGestureRecognizer_PointerEntered" 
+                                                          PointerExited="PointerGestureRecognizer_PointerExited"/>
+                    </Border.GestureRecognizers>
+                    <syncf:SfEffectsView BackgroundColor="Transparent"
+                                         RippleAnimationDuration="300">
+                        <VerticalStackLayout >
+                            <toolkit:AvatarView ImageSource="{Binding AlbumImagePath}" 
+                               HeightRequest="130" WidthRequest="140" 
+                                            BorderWidth="0" CornerRadius="18"/>
+                            <Label Text="{Binding Name}"/>
+                            <Label Text="{Binding NumberOfTracks}"/>
+                            <Label Text="{Binding ReleaseYear}"/>
+                        </VerticalStackLayout>
+                    </syncf:SfEffectsView>
+                </Border>
+            </DataTemplate>
+         
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <toolkit:DockLayout BackgroundColor="#1F1F1F" x:Name="MainDock"
+                    IsVisible="True">
+        <toolkit:DockLayout.GestureRecognizers >
+            <DropGestureRecognizer AllowDrop="True" x:Name="mainDockDropGest" DragOver="DropGestureRecognizer_DragOver"
+        DragLeave="DropGestureRecognizer_DragLeave"
+        Drop="DropGestureRecognizer_Drop"/>
+        </toolkit:DockLayout.GestureRecognizers>
+
+        <cw:MediaPlaybackControlsView toolkit:DockLayout.DockPosition="Bottom"
+                    x:Name="MediaPlayBackCW"/>
+        <toolkit:DockLayout x:Name="MainBody" >
+            <Grid RowDefinitions="Auto,*" >
+                <CollectionView x:Name="AlbumsColView" Grid.Row="0" HeightRequest="450"
+                    ItemTemplate="{StaticResource itemTemplate}" 
+                    ItemsSource="{Binding AllAlbums}"
+                    HorizontalScrollBarVisibility="Default"
+                    >
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Horizontal"
+                                Span="2" HorizontalItemSpacing="5"
+                                VerticalItemSpacing="5" />
+                    </CollectionView.ItemsLayout>
+                </CollectionView>
+                <!--<CollectionView.Header>
+<FlexLayout JustifyContent="SpaceBetween">
+    <Label Text="{Binding AllArtistsAlbumSongs.Count, StringFormat='{0} Songs'}"/>
+
+    <ImageButton Clicked="ImageButton_Clicked" Source="repeaton.png"
+            ToolTipProperties.Text="Show All Artist Songs">
+    </ImageButton>
+</FlexLayout>
+</CollectionView.Header>-->
+
+                <Grid ColumnDefinitions="*,Auto" Grid.Row="1"
+            ColumnSpacing="10" >
+
+                    <CollectionView Grid.Column="0" SelectionMode="Single" 
+                        x:Name="AlbumSongsCV" SelectedItem="{}" 
+                        ItemsSource="{Binding AllArtistsAlbumSongs}" 
+                        EmptyView="No Songs to display, Please Select an Album..."                            
+                        IsGrouped="False">
+
+                        <!--<CollectionView.GroupHeaderTemplate>
+                <DataTemplate x:DataType="models:SongsGroup">
+                    <Border >
+                        <syncf:SfEffectsView>
+                            <HorizontalStackLayout Padding="10" BackgroundColor="Transparent">
+                                <Label Text="{Binding GroupName}" FontAttributes="Bold" 
+                                        FontSize="20" />                                    
+                            </HorizontalStackLayout>
+                        </syncf:SfEffectsView>
+                    </Border>
+                       
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+
+            <CollectionView.GroupFooterTemplate>
+                <DataTemplate x:DataType="models:SongsGroup">
+                    <Border >
+                        <syncf:SfEffectsView>
+                            <HorizontalStackLayout Padding="10" BackgroundColor="Transparent">
+                                <Label Text="{Binding Songs.Count}" FontAttributes="Bold" 
+                    FontSize="20" />
+                            </HorizontalStackLayout>
+                        </syncf:SfEffectsView>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.GroupFooterTemplate>-->
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SongModelView">
+
+                                <syncf:SfEffectsView Padding="10,5" TouchDownEffects="Ripple" 
+                                            HeightRequest="90"                                             
+                                            x:Name="AlbumSongsView" RippleAnimationDuration="550"
+                                            FadeOutRipple="True" VerticalOptions="Fill"
+                                            RippleBackground="DarkSlateBlue" BackgroundColor="Transparent">
+
+                                    <VisualStateManager.VisualStateGroups>
+                                        <VisualStateGroup x:Name="CommonStates">
+                                            <VisualState x:Name="Normal" >
+                                                <VisualState.Setters>
+                                                    <Setter Property="Scale" Value="0.95"/>
+                                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                                </VisualState.Setters>
+                                            </VisualState>
+
+                                            <VisualState x:Name="PointerOver">
+                                                <VisualState.Setters>
+                                                    <Setter Property="Scale" Value="1"/>
+                                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                        </VisualStateGroup>
+                                    </VisualStateManager.VisualStateGroups>
+
+                                    <syncf:SfEffectsView.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="SongInAlbumFromArtistPage_TappedToPlay" NumberOfTapsRequired="2"/>
+                                        <PointerGestureRecognizer PointerEntered="PointerGestureRecognizer_PointerEntered"/>
+                                    </syncf:SfEffectsView.GestureRecognizers>
+
+                                    <VerticalStackLayout >
+                                        <Label Text="{Binding Title}" FontSize="16"/>
+                                        
+                                        </VerticalStackLayout>
+                                </syncf:SfEffectsView>
+
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+
+
+                </Grid>
+
+                
+            </Grid>
+        </toolkit:DockLayout>
+    </toolkit:DockLayout>
+    
+</ContentPage>

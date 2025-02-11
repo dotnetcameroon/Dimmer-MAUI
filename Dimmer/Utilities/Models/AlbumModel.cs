@@ -18,7 +18,7 @@ public partial class AlbumModel : RealmObject
     public string? DeviceManufacturer { get; set; } = DeviceInfo.Current.Manufacturer;
     public string? DeviceVersion { get; set; } = DeviceInfo.Current.VersionString;
     [PrimaryKey]
-    public string? LocalDeviceId { get; set; } = GeneralStaticUtilities.GenerateRandomString(nameof(AlbumModel));
+    public string? LocalDeviceId { get; set; }
 
     public AlbumModel()
     {
@@ -26,7 +26,6 @@ public partial class AlbumModel : RealmObject
 
     public AlbumModel(AlbumModelView model)
     {        
-        LocalDeviceId = model.LocalDeviceId;
         Name = model.Name;
         ReleaseYear = model.ReleaseYear;
         NumberOfTracks = model.NumberOfTracks;
@@ -38,20 +37,19 @@ public partial class AlbumModel : RealmObject
 public partial class AlbumModelView : ObservableObject
 {
     [ObservableProperty]
-    string? localDeviceId = GeneralStaticUtilities.GenerateRandomString(nameof(AlbumModelView));
-
+    public partial string? Name { get; set; }
     [ObservableProperty]
-    string? name;
+    public partial string? LocalDeviceId { get; set; }
     [ObservableProperty]
-    int? releaseYear;
+    public partial int? ReleaseYear { get; set; }
     [ObservableProperty]
-    int numberOfTracks;
+    public partial int NumberOfTracks { get; set; }
     [ObservableProperty]
-    string? totalDuration;
+    public partial string? TotalDuration { get; set; }
     [ObservableProperty]
-    string? description;
+    public partial string? Description { get; set; }
     [ObservableProperty]
-    string? albumImagePath;
+    public partial string? AlbumImagePath { get; set; }
 
     public string? DateCreated { get; set; } = DateTime.UtcNow.ToString("o");
     public string? DeviceName { get; set; } = DeviceInfo.Current.Name;
@@ -60,7 +58,7 @@ public partial class AlbumModelView : ObservableObject
     public string? DeviceManufacturer { get; set; } = DeviceInfo.Current.Manufacturer;
     public string? DeviceVersion { get; set; } = DeviceInfo.Current.VersionString;
     [ObservableProperty]
-    bool isCurrentlySelected;
+    public partial bool IsCurrentlySelected { get; set; }
     public AlbumModelView(AlbumModel model)
     {   
         LocalDeviceId = model.LocalDeviceId;

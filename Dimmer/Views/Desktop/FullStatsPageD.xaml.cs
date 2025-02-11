@@ -1,5 +1,3 @@
-using Syncfusion.Maui.Toolkit.Charts;
-using Syncfusion.Maui.Toolkit.Chips;
 using Syncfusion.Maui.Toolkit.EffectsView;
 
 namespace Dimmer_MAUI.Views.Desktop;
@@ -10,23 +8,24 @@ public partial class FullStatsPageD : ContentPage
     {
         InitializeComponent();
         this.BindingContext = homePageVM;
-        ViewModel = homePageVM;
+        MyViewModel = homePageVM;
     }
-    public HomePageVM ViewModel { get; }
+    public HomePageVM MyViewModel { get; }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
 
         
-        if (ViewModel.TemporarilyPickedSong is null)
+        if (MyViewModel.TemporarilyPickedSong is null)
         {
             return;
         }
-        ViewModel.CurrentPage = PageEnum.FullStatsPage;
-        //HomePageVM.ShowGeneralTopXSongsCommand.Execute(null);
+        MyViewModel.CurrentPage = PageEnum.FullStatsPage;
+        MyViewModel.CurrentPageMainLayout = MainDock;
+        //MyViewModel.ShowGeneralTopXSongsCommand.Execute(null);
         StatsTabs.SelectedItem = StatsTabs.Children[0];
-        ViewModel.CallStats();
+        MyViewModel.CallStats();
     }
 
     private async void StatsTabs_SelectionChanged(object sender, Syncfusion.Maui.Toolkit.Chips.SelectionChangedEventArgs e)
@@ -49,18 +48,18 @@ public partial class FullStatsPageD : ContentPage
             case 1:
                 
                 //SongsStatsView front, rest back
-                //HomePageVM.GetNotListenedStreaks();
-                //HomePageVM.GetTopStreakTracks();
+                //MyViewModel.GetNotListenedStreaks();
+                //MyViewModel.GetTopStreakTracks();
 
-                //HomePageVM.GetGoldenOldies();
+                //MyViewModel.GetGoldenOldies();
 
 
-                //HomePageVM.GetBiggestFallers(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetStatisticalOutlierSongs();
-                //HomePageVM.GetDailyListeningVolume();
-                //HomePageVM.GetUniqueTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetNewTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetOngoingGapBetweenTracks();
+                //MyViewModel.GetBiggestFallers(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetStatisticalOutlierSongs();
+                //MyViewModel.GetDailyListeningVolume();
+                //MyViewModel.GetUniqueTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetNewTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetOngoingGapBetweenTracks();
                 break;
             case 2:
                 //ViewModel.
@@ -161,30 +160,23 @@ public partial class FullStatsPageD : ContentPage
         _ = send.DimmOut(300);
     }
 
-    private async void DataPointSelectionBehavior_SelectionChanged(object sender, Syncfusion.Maui.Toolkit.Charts.ChartSelectionChangedEventArgs e)
+    private void DataPointSelectionBehavior_SelectionChanged(object sender, Syncfusion.Maui.Toolkit.Charts.ChartSelectionChangedEventArgs e)
     {
-        Debug.WriteLine(sender.GetType());
-        Debug.WriteLine(e.NewIndexes.Count);
         var send = sender as PieSeries;
         var itemss = send.ItemsSource as ObservableCollection<DimmData>;
-        Debug.WriteLine(send.ItemsSource.GetType());
-        foreach (var item in e.NewIndexes)
-        {
-            Debug.WriteLine("ss "+item);
-            
-        }
-        var song = ViewModel.DisplayedSongs.FirstOrDefault(X=> X.LocalDeviceId == itemss[e.NewIndexes[0]].SongId);
+        
+        var song = MyViewModel.DisplayedSongs.FirstOrDefault(X=> X.LocalDeviceId == itemss[e.NewIndexes[0]].SongId);
 
-        ViewModel.SelectedSongToOpenBtmSheet = song;
+        MyViewModel.MySelectedSong = song;
         if (ClickToPreview)
         {
-            await ViewModel.PlaySong(song, true);
+            MyViewModel.PlaySong(song, true);
         }        
     }
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        ViewModel.IsPreviewing=false;
+        MyViewModel.IsPreviewing=false;
     }
 
 

@@ -6,7 +6,7 @@
             
             
              xmlns:converters="clr-namespace:Dimmer_MAUI.Utilities.TypeConverters"
-            xmlns:m="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+            
             xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"
             xmlns:models="clr-namespace:Dimmer_MAUI.Utilities.Models"    
             xmlns:viewsM="clr-namespace:Dimmer_MAUI.Views.Mobile"  
@@ -15,7 +15,7 @@
             Shell.BackgroundColor="#151C1C"
             BackgroundColor="#151C1C"   
             xmlns:dx="http://schemas.devexpress.com/maui"
-            Shell.NavBarIsVisible="False"
+            Shell.NavBarIsVisible="True"
              x:Name="myPage">
 
     <ContentPage.Resources>
@@ -24,22 +24,21 @@
                 <Setter Property="TextColor" Value="White"/>
             </Style>
             <converters:DurationConverterFromMsToTimeSpan x:Key="DurationConverter"/>
-            <converters:BoolToImageConverter x:Key="BoolToImage"/>
+            
             <converters:BoolToInverseConverter x:Key="BoolToInverse"/>
         </ResourceDictionary>
     </ContentPage.Resources>
     <dx:DXDockLayout x:Name="tkDL" Margin="5,0">
         <Grid ColumnDefinitions="Auto,*,Auto" dx:DXDockLayout.Dock="Top">
 
-            <Label Text="{Binding SelectedSongToOpenBtmSheet.ArtistName}" HorizontalTextAlignment="Center"
+            <Label Text="{Binding MySelectedSong.ArtistName}" HorizontalTextAlignment="Center"
         VerticalTextAlignment="Center" FontAttributes="Bold" 
         FontSize="20" Grid.Column="0"/>
 
             <ImageButton HeightRequest="30"
-               Grid.Column="2">
-                <ImageButton.Source>
-                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Sort}"/>
-                </ImageButton.Source>
+               Grid.Column="2"
+                         Source="sortvertical.png">
+                
             </ImageButton>
 
         </Grid>
@@ -92,16 +91,15 @@ FontAttributes="Bold"/>
                     <Border Stroke="Transparent" Padding="2,2">
                         <FlexLayout JustifyContent="SpaceBetween" >
                             <VerticalStackLayout>
-                                <Label Text="{Binding Title}" FontSize="18"/>
+                                <Label Text="{Binding Title}" FontSize="16"/>
                                 <Label Text="{Binding ArtistName}" FontSize="13" TextColor="Gray"/>
                             </VerticalStackLayout>
 
                             <VerticalStackLayout>
                                 <Label Text="{Binding DurationInSeconds, Converter={StaticResource DurationConverter}}"/>
-                                <Image WidthRequest="20" IsVisible="{Binding HasLyrics}">
-                                    <Image.Source>
-                                        <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Lyrics}"/>
-                                    </Image.Source>
+                                <Image WidthRequest="20" IsVisible="{Binding HasLyrics}"
+                                       Source="lyrics.png">
+                                    
                                 </Image>
                             </VerticalStackLayout>
                         </FlexLayout>

@@ -2,16 +2,26 @@
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage.Streams;
+using System.Windows.Interop;
+using Microsoft.Maui.Platform;
+using System.Windows.Media;
+using MediaPlayer = Windows.Media.Playback.MediaPlayer;
+using MediaPlayers = System.Windows.Media.MediaPlayer;
 
 namespace Dimmer_MAUI.Platforms.Windows;
 
-public partial class NativeAudioService : INativeAudioService, INotifyPropertyChanged
+public partial class DimmerAudioService : IDimmerAudioService, INotifyPropertyChanged, IDisposable
 {
-    static NativeAudioService current;
-    public static INativeAudioService Current => current ??= new NativeAudioService();
+    static DimmerAudioService? current;
+    public static IDimmerAudioService Current => current ??= new DimmerAudioService();
+
     HomePageVM? ViewModel { get; set; }
-    MediaPlayer  mediaPlayer;
+    MediaPlayer? mediaPlayer;
     MediaPlay? CurrentMedia { get; set; }
+    public DimmerAudioService()
+    {
+    }
+
     private bool isPlaying;
     public bool IsPlaying
     {
@@ -27,10 +37,6 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
         }
     }
 
-    private void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 
     public double Duration => mediaPlayer?.NaturalDuration.TotalSeconds ?? 0;
     public double CurrentPosition => mediaPlayer?.Position.TotalSeconds ?? 0;
@@ -51,8 +57,15 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
         get => mediaPlayer?.IsMuted ?? false;
         set => mediaPlayer.IsMuted = value;
     }
-    public double Balance { get => mediaPlayer.AudioBalance; set => mediaPlayer.AudioBalance = Math.Clamp(value, -1, 1); }
-
+    public double Balance
+    {
+        get => 0; // CSCore does not natively support balance
+        set { /* Implement if necessary using custom processing */ }
+    }
+    private readonly object resourceLock = new();
+    private bool disposed = false;
+    private SemaphoreSlim semaphoreSlim = new(1, 1);
+    
     public event EventHandler<bool>? IsPlayingChanged;
     public event EventHandler? PlayEnded;
     public event EventHandler? PlayNext;
@@ -60,23 +73,27 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<long>? IsSeekedFromNotificationBar;
 
-    public Task PauseAsync()
+    private void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public void Pause()
     {
         mediaPlayer?.Pause();
         IsPlaying = false;
         IsPlayingChanged?.Invoke(this, false);
-        return Task.CompletedTask;
+        
     }
 
-    public Task ResumeAsync(double positionInSeconds)
+    public void Resume(double positionInSeconds)
     {
         mediaPlayer.Position = TimeSpan.FromSeconds(positionInSeconds);
         mediaPlayer.Play();
         IsPlaying = true;
-        
-        return Task.CompletedTask;
     }
-    public Task PlayAsync(bool IsFromPreviousOrNext = false)
+
+    public void Play(bool s)
     {
         if (mediaPlayer != null)
         {
@@ -84,25 +101,33 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
             IsPlaying = true;
             IsPlayingChanged?.Invoke(this, true);
         }
-        return Task.CompletedTask;
-        
     }
 
-    
-    public Task SetCurrentTime(double positionInSec)
+
+    public void SetCurrentTime(double positionInSec)
     {
-        
         if (mediaPlayer == null)
         {
-            return Task.FromResult(false);
+            return;
         }
         mediaPlayer.Position = TimeSpan.FromSeconds(positionInSec);
-        return Task.FromResult(true);
     }
-    public Task DisposeAsync()
+
+
+    public void Dispose()
     {
-        mediaPlayer?.Dispose();
-        return Task.CompletedTask;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposed)
+            return; // Prevent multiple disposals
+
+
+        // Clean up unmanaged resources, if any
+        disposed = true;
     }
 
 
@@ -147,7 +172,7 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
                 props.Thumbnail = RandomAccessStreamReference.CreateFromStream(thumbnailStream);
             }
             mediaItem.AutoLoadedDisplayProperties = AutoLoadedDisplayPropertyKind.Music;
-            
+
             mediaItem.ApplyDisplayProperties(props);
             return mediaItem;
         }
@@ -158,7 +183,10 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
         }
     }
 
-    public void Initialize(SongModelView? media, byte[]? ImageBytes)
+
+    //private SongModelView? _nextMedia; // To store the next media to be played
+
+    public void Initialize(SongModelView? media, byte[]? ImageBytes) // Changed to async void - be mindful of exceptions
     {
         CurrentMedia?.Stream?.Dispose();
         if (media is not null)
@@ -177,7 +205,7 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
                 ImageBytes = ImageBytes is not null ? ImageBytes : null,
                 DurationInMs = (long)(media.DurationInSeconds * 1000),
             };
-            
+
         }
         try
         {
@@ -194,12 +222,12 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
                     AudioCategory = MediaPlayerAudioCategory.Media,
                 };
 
-                
+
 
                 mediaPlayer.CommandManager.PreviousReceived += CommandManager_PreviousReceived;
                 mediaPlayer.CommandManager.PreviousBehavior.EnablingRule = MediaCommandEnablingRule.Always;
                 mediaPlayer.CommandManager.ShuffleBehavior.EnablingRule = MediaCommandEnablingRule.Always;
-                
+
                 mediaPlayer.CommandManager.NextReceived += CommandManager_NextReceived;
                 mediaPlayer.CommandManager.NextBehavior.EnablingRule = MediaCommandEnablingRule.Always;
 
@@ -207,12 +235,12 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
 
                 mediaPlayer.CommandManager.PauseReceived += CommandManager_PauseReceived;
                 mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
-                mediaPlayer.Volume = 1;
+                //mediaPlayer.Volume = 1;
                 mediaPlayer.MediaFailed += MediaPlayer_MediaFailed;
             }
             else
             {
-                PauseAsync();
+                Pause();
                 mediaPlayer.Source = curMedia;
             }
         }
@@ -227,8 +255,8 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
         Debug.WriteLine(args.Error);
         Debug.WriteLine(args.ErrorMessage);
         Debug.WriteLine(args.ExtendedErrorCode);
-        
-        
+
+
     }
 
     private void MediaPlayer_MediaEnded(MediaPlayer sender, object args)
@@ -254,4 +282,14 @@ public partial class NativeAudioService : INativeAudioService, INotifyPropertyCh
         IsPlayingChanged?.Invoke(sender, true);
     }
 
+    public void ApplyEqualizerSettings(float[] bands)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void ApplyEqualizerPreset(EqualizerPresetName presetName)
+    {
+        throw new NotImplementedException();
+    }
 }
+    

@@ -1,5 +1,5 @@
-﻿using Parse.LiveQuery;
-
+﻿using Syncfusion.Maui.Toolkit.BottomSheet;
+using Parse.LiveQuery;
 namespace Dimmer_MAUI.ViewModels;
 
 public partial class HomePageVM
@@ -78,7 +78,7 @@ public partial class HomePageVM
             // If the delay completed without cancellation, pause the song
             if (!cancellationToken.IsCancellationRequested && IsPlaying)
             {
-                await PauseSong();
+                PauseSong();
             }
         }
         catch (TaskCanceledException ex)
@@ -93,7 +93,8 @@ public partial class HomePageVM
 #if WINDOWS && NET9_0
         if (IsPlaying)
         {
-            _= this.PauseSong();
+            PauseSong();
+            GeneralStaticUtilities.ClearUp();   
         }
 #endif
         if (TemporarilyPickedSong is not null)
@@ -101,10 +102,8 @@ public partial class HomePageVM
             AppSettingsService.LastPlayedSongPositionPref.SetLastPosition(CurrentPositionPercentage);
             AppSettingsService.LastPlayedSongSettingPreference.SetLastPlayedSong(TemporarilyPickedSong.LocalDeviceId);
         }
-        await APIKeys.LogoutDevice();
+        //await APIKeys.LogoutDevice();
     }
-    [ObservableProperty]
-    bool iIsMultiSelectOn;
     [RelayCommand]
     async Task DeleteFile(SongModelView? song)
     {
@@ -129,9 +128,9 @@ public partial class HomePageVM
                     }
                     if (MultiSelectSongs.Contains(TemporarilyPickedSong!))
                     {
-                        await PlayNextSong();
+                        PlayNextSong();
                     }
-                    await PlayBackService.MultiDeleteSongFromHomePage(MultiSelectSongs);
+                    PlayBackService.MultiDeleteSongFromHomePage(MultiSelectSongs);
 
                     MultiSelectSongs.Clear();
                     MultiSelectText = $"{MultiSelectSongs.Count} Song{(MultiSelectSongs.Count > 1 ? "s" : "")} Selected";
@@ -142,7 +141,7 @@ public partial class HomePageVM
 
                 if (!EnableContextMenuItems)
                     break;
-                song ??= SelectedSongToOpenBtmSheet;
+                song ??= MySelectedSong;
                 bool res = await Shell.Current.DisplayAlert("Delete File", $"Are you sure you want to Delete Song: {song.Title} " +
                     $"by {song.ArtistName}?", "Yes", "No");
                 
@@ -151,7 +150,7 @@ public partial class HomePageVM
                     PlatSpecificUtils.DeleteSongFile(song);
                     if (song == TemporarilyPickedSong)
                     {
-                        await PlayNextSong();
+                        PlayNextSong();
                     }
                     DisplayedSongs?.Remove(song);
                     PlayBackService.DeleteSongFromHomePage(song);
@@ -162,9 +161,9 @@ public partial class HomePageVM
     }
 
     [RelayCommand]
-    void OpenSongFolder() //SongModel SelectedSong)
+    void OpenSongFolder()//SongModel SelectedSong)
     {
-        if (SelectedSongToOpenBtmSheet is null)
+        if (MySelectedSong is null)
         {
             return;
         }
@@ -174,11 +173,11 @@ public partial class HomePageVM
         string filePath = string.Empty;
         if (CurrentPage == PageEnum.NowPlayingPage)
         {
-            filePath = SelectedSongToOpenBtmSheet.FilePath;
+            filePath = MySelectedSong.FilePath;
         }
         else
         {
-            filePath = SelectedSongToOpenBtmSheet.FilePath;
+            filePath = MySelectedSong.FilePath;
         }
         var directoryPath = Path.GetDirectoryName(filePath);
 
@@ -213,7 +212,7 @@ public partial class HomePageVM
     public AppWindowPresenter AppWinPresenter { get; set; }
 #endif
     [ObservableProperty]
-    bool isStickToTop = false;
+    public partial bool IsStickToTop { get; set; } = false;
     [RelayCommand]
     void ToggleStickToTop()
     {       
@@ -232,19 +231,30 @@ public partial class HomePageVM
         PlatSpecificUtils.ToggleFullScreenMode(IsSleek, AppWinPresenter);
 #endif
     }
+    [ObservableProperty]
+    public partial View CurrentPageMainLayout { get; set; }
+
+    //public partial void OnCurrentPageChanging (PageEnum oldPage, PageEnum newPage)
+    //{
+    //    if (oldPage == PageEnum.NowPlayingPage)
+    //    {
+
+    //    }
+    //}
+
 
     #region Search Song On... ContextMenu Options
 
     [RelayCommand]
     async Task CntxtMenuSearch(int param)
     {
-        if (SelectedSongToOpenBtmSheet is null)
+        if (MySelectedSong is null)
         {
             return; // show error msg here or cue
         }
         if (CurrentPage == PageEnum.NowPlayingPage)
         {
-            SelectedSongToOpenBtmSheet = TemporarilyPickedSong!;
+            MySelectedSong = TemporarilyPickedSong!;
         }
         switch (param)
         {
@@ -267,15 +277,15 @@ public partial class HomePageVM
                 break;
         }
     }
-    //I want to use SelectedSongToOpenBtmSheet, which has Title, ArtistName and AlbumName
+    //I want to use MySelectedSong, which has Title, ArtistName and AlbumName
     async Task OpenGoogleSearch()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.Title} - {SelectedSongToOpenBtmSheet.ArtistName}";
-            //if (!string.IsNullOrEmpty(SelectedSongToOpenBtmSheet.AlbumName))
+            string query = $"{MySelectedSong.Title} - {MySelectedSong.ArtistName}";
+            //if (!string.IsNullOrEmpty(MySelectedSong.AlbumName))
             //{
-            //    query += $" {SelectedSongToOpenBtmSheet.AlbumName}";
+            //    query += $" {MySelectedSong.AlbumName}";
             //}
             string searchUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
@@ -284,9 +294,9 @@ public partial class HomePageVM
 
     async Task OpenGoogleLyricsSearch()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.Title} by {SelectedSongToOpenBtmSheet.ArtistName} lyrics";
+            string query = $"{MySelectedSong.Title} by {MySelectedSong.ArtistName} lyrics";
             string searchUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
@@ -294,18 +304,18 @@ public partial class HomePageVM
 
     async Task OpenYouTubeSearchResults()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.ArtistName} {SelectedSongToOpenBtmSheet.Title}";
+            string query = $"{MySelectedSong.ArtistName} {MySelectedSong.Title}";
             string searchUrl = $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
     }
     async Task OpenGoogleArtistSearch()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.ArtistName}";
+            string query = $"{MySelectedSong.ArtistName}";
             string searchUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
@@ -313,18 +323,18 @@ public partial class HomePageVM
 
     async Task OpenGoogleAlbumSearch()
     {
-        if (SelectedSongToOpenBtmSheet != null && !string.IsNullOrEmpty(SelectedSongToOpenBtmSheet.AlbumName))
+        if (MySelectedSong != null && !string.IsNullOrEmpty(MySelectedSong.AlbumName))
         {
-            string query = $"{SelectedSongToOpenBtmSheet.AlbumName} {SelectedSongToOpenBtmSheet.ArtistName}";
+            string query = $"{MySelectedSong.AlbumName} {MySelectedSong.ArtistName}";
             string searchUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
     }
     async Task OpenYouTubeArtistProfile()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.ArtistName}";
+            string query = $"{MySelectedSong.ArtistName}";
             string searchUrl = $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
@@ -332,27 +342,27 @@ public partial class HomePageVM
 
     async Task OpenSpotifyArtistProfile()
     {
-        if (SelectedSongToOpenBtmSheet != null && !string.IsNullOrEmpty(SelectedSongToOpenBtmSheet.ArtistName))
+        if (MySelectedSong != null && !string.IsNullOrEmpty(MySelectedSong.ArtistName))
         {
-            string searchUrl = $"https://open.spotify.com/search/{Uri.EscapeDataString(SelectedSongToOpenBtmSheet.ArtistName)}";
+            string searchUrl = $"https://open.spotify.com/search/{Uri.EscapeDataString(MySelectedSong.ArtistName)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
     }
 
     async Task OpenSpotifyAlbumProfile()
     {
-        if (SelectedSongToOpenBtmSheet != null && !string.IsNullOrEmpty(SelectedSongToOpenBtmSheet.AlbumName))
+        if (MySelectedSong != null && !string.IsNullOrEmpty(MySelectedSong.AlbumName))
         {
-            string searchUrl = $"https://open.spotify.com/search/{Uri.EscapeDataString(SelectedSongToOpenBtmSheet.AlbumName)} {Uri.EscapeDataString(SelectedSongToOpenBtmSheet.AlbumName)}";
+            string searchUrl = $"https://open.spotify.com/search/{Uri.EscapeDataString(MySelectedSong.AlbumName)} {Uri.EscapeDataString(MySelectedSong.AlbumName)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
     }
 
     async Task OpenSpotifySearchResults()
     {
-        if (SelectedSongToOpenBtmSheet != null)
+        if (MySelectedSong != null)
         {
-            string query = $"{SelectedSongToOpenBtmSheet.Title} {SelectedSongToOpenBtmSheet.ArtistName}";
+            string query = $"{MySelectedSong.Title} {MySelectedSong.ArtistName}";
             string searchUrl = $"https://open.spotify.com/search/{Uri.EscapeDataString(query)}";
             await Launcher.OpenAsync(new Uri(searchUrl));
         }
@@ -360,7 +370,7 @@ public partial class HomePageVM
     #endregion
 
     [ObservableProperty]
-    bool isRetrievingCovers = true;
+    public partial bool IsRetrievingCovers { get; set; } = true;
     [RelayCommand]
     async Task ReloadCoverImageAsync()
     {
@@ -369,7 +379,7 @@ public partial class HomePageVM
         await Task.Run(() =>
         {
             // Perform the operations on a background thread
-            DisplayedSongs = PlaybackUtilsService.CheckCoverImage(DisplayedSongs);
+            //DisplayedSongs = PlaybackUtilsService.CheckCoverImage(DisplayedSongs);
 
             // Call the non-awaitable method directly
             SongsMgtService.AddSongBatchAsync(DisplayedSongs); // No await needed
@@ -383,11 +393,11 @@ public partial class HomePageVM
 
 
     [ObservableProperty]
-    bool isTemporarySongNull = true;
+    public partial bool IsTemporarySongNull { get; set; } = true;
 
 
     [ObservableProperty]
-    bool isOnSearchMode = false;
+    public partial bool IsOnSearchMode { get; set; } = false;
 
 
     [RelayCommand]
@@ -398,7 +408,7 @@ public partial class HomePageVM
     }
 
     [ObservableProperty]
-    string shareImgPath = string.Empty;
+    public partial string ShareImgPath { get; set; } = string.Empty;
     
     public Color[] ShareColors { get; } = new Color[]{
             Color.FromArgb("#FF0000"),
@@ -433,44 +443,39 @@ public partial class HomePageVM
         }
     }
 
-    public void ToggleFlyout(bool isOpenFlyout=false)
+
+    public void ToggleFlyout()
     {
-        IsFlyOutPaneOpen = false;
+
+        IsFlyoutPresented = !IsFlyoutPresented;
         if (Shell.Current == null)
         {
             return;
         }
-        if (isOpenFlyout)
+        if (IsFlyoutPresented)
         {
-            if(Shell.Current.FlyoutBehavior != FlyoutBehavior.Locked)
-            {
-                IsFlyOutPaneOpen = true;
-                Shell.Current.FlyoutBehavior = FlyoutBehavior.Locked;
-            }
+            if (PartOfNowPlayingSongsCV is null)
+                return;
+            PartOfNowPlayingSongsCV.ScrollTo(TemporarilyPickedSong, null, ScrollToPosition.Start, false);
         }
         else
         {
-            if (Shell.Current.FlyoutBehavior != FlyoutBehavior.Flyout)
-            {
-                IsFlyOutPaneOpen = false;
-                Shell.Current.FlyoutBehavior = FlyoutBehavior.Flyout;
-                _ = Task.Delay(500);
-                Shell.Current.FlyoutIsPresented = true;
-            }
+            _ = Task.Delay(500);
+            Shell.Current.FlyoutIsPresented = true;            
         }
     }
 
     [RelayCommand]
-    void LogOut()
+    static void LogOut()
     {
         ParseClient.Instance.LogOut();
     }
 
     [ObservableProperty]
-    bool isSyncingSongs = false;    
+    public partial bool IsSyncingSongs { get; set; } = false;    
 
     [ObservableProperty]
-    bool isLoggedIn = false;    
+    public partial bool IsLoggedIn { get; set; } = false;    
     public async Task FullSync()
     {
         SongsMgtService.CurrentUserOnline = this.CurrentUserOnline;
@@ -511,42 +516,42 @@ public partial class HomePageVM
         List<object> allPlayDatalinks = new();
         foreach (PlayDataLink item in AllPlayDataLinks)
         {
-            allPlayDatalinks.Add(ObjectHelper.ClassToDictionary(item));
+            allPlayDatalinks.Add( ObjectMapper.ClassToDictionary(item));
         }
         
         List<object> AllAlbumModelView = new();
         foreach (AlbumModelView item in AllAlbums)
         {
             
-            AllAlbumModelView.Add(ObjectHelper.ClassToDictionary(item));
+            AllAlbumModelView.Add(ObjectMapper.ClassToDictionary(item));
         }
         List<object> AllGenresModelView = new();
         foreach (GenreModelView item in SongsMgtService.AllGenres)
         {
-            AllGenresModelView.Add(ObjectHelper.ClassToDictionary(item));
+            AllGenresModelView.Add(ObjectMapper.ClassToDictionary(item));
         }
         
         List<object> ArtistModelV = new();
         foreach (ArtistModelView item in AllArtists)
         {
-            ArtistModelV.Add(ObjectHelper.ClassToDictionary(item));
+            ArtistModelV.Add(ObjectMapper.ClassToDictionary(item));
         }
         List<object> AllLinkss = new();
         foreach (AlbumArtistGenreSongLinkView item in AllLinks)
         {
-            AllLinkss.Add(ObjectHelper.ClassToDictionary(item));
+            AllLinkss.Add(ObjectMapper.ClassToDictionary(item));
         }
         
         List<object> AllSongModelView = new();
         foreach (SongModelView item in DisplayedSongs)
         {
-            AllSongModelView.Add(ObjectHelper.ClassToDictionary(item));
+            AllSongModelView.Add(ObjectMapper.ClassToDictionary(item));
         }
         
         List<object> AllPlayLists = new();
         foreach (PlaylistModelView item in DisplayedPlaylists)
         {
-            AllPlayLists.Add(ObjectHelper.ClassToDictionary(item));
+            AllPlayLists.Add(ObjectMapper.ClassToDictionary(item));
         }
         
 
@@ -676,7 +681,7 @@ public partial class HomePageVM
             if (value is List<object> dataList)
             {
                 return dataList.Cast<IDictionary<string, object>>()
-                               .Select(item => ObjectHelper.MapFromDictionary<T>(item))
+                               .Select(item => ObjectMapper.MapFromDictionary<T>(item))
                                .Where(item => item != null) // Filter out null items
                                .ToList();
             }
@@ -765,6 +770,12 @@ public partial class HomePageVM
     [RelayCommand]
     public async Task<bool> LogInParseOnline(bool isSilent=true)
     {
+        return false;
+        if (CurrentUser is null)
+        {
+            return false;
+        }
+        
         if ((string.IsNullOrEmpty(CurrentUser.UserPassword)||string.IsNullOrEmpty(CurrentUser.UserName)) && !isSilent)
         {
             await Shell.Current.DisplayAlert("Error!", "Empty UserName/Password", "Ok");
@@ -831,10 +842,8 @@ public partial class HomePageVM
 
         var existingDevices = await query.FindAsync();
         var existingDevice = existingDevices.FirstOrDefault();
-
         if (existingDevice != null)
         {
-            existingDevice["lastLogin"] = DateTime.Now;
             existingDevice["isOnline"] = true;
 
             await existingDevice.SaveAsync();
@@ -845,7 +854,6 @@ public partial class HomePageVM
             newDevice["deviceOwner"] = currentParseUser.Email;
             newDevice["deviceName"] = DeviceInfo.Name;
             newDevice["deviceType"] = DeviceInfo.Idiom.ToString();
-            newDevice["lastLogin"] = DateTime.Now;
             newDevice["isOnline"] = true;
             await newDevice.SaveAsync();
         }
@@ -868,13 +876,78 @@ public partial class HomePageVM
         }
     }
 
-    [RelayCommand]
-    public async Task<bool> LogUserOut()
+    
+    public bool LogUserOut()
     {
-        await APIKeys.LogoutDevice();
+        //await APIKeys.LogoutDevice();
         CurrentUser.IsAuthenticated = false;
         CurrentUser.LastSessionDate = DateTime.Now;
         CurrentUserOnline = null;
         return true;
+    }
+
+    [ObservableProperty]
+    public partial List<string>? MiniPlayerPages { get; set; } = new List<string> { "Lyrics", "Album", "Details" };
+    [ObservableProperty]
+    public partial bool IsDesktopContextMenuOpened { get; set; } = false;
+    [ObservableProperty]
+    public partial DBtmState MobileBtmSheetState { get; set; }
+     
+    public async Task ShowContextMenu(ContextMenuPageCaller caller=ContextMenuPageCaller.MainPage)
+    {
+        switch (caller)
+        {
+            case ContextMenuPageCaller.MainPage:
+
+                break;
+            case ContextMenuPageCaller.ArtistPage:
+                break;
+            case ContextMenuPageCaller.AlbumPage:
+                break;
+            case ContextMenuPageCaller.PlaylistPage:
+                break;
+            case ContextMenuPageCaller.QueuePage:
+                break;
+            case ContextMenuPageCaller.MiniPlaybackBar:
+                MySelectedSong = TemporarilyPickedSong!;
+                break;
+            default:
+                break;
+        }
+        var result =await Shell.Current.ShowPopupAsync(new SongContextMenuPopupView(this, MySelectedSong!));
+        if (result is null)
+        {
+            return;
+        }
+        else if (result is int)
+        {
+            switch (result)
+            {
+                case 0:
+                    AddNextInQueue(MySelectedSong);
+                    break;
+
+                case 1:
+                    break;
+
+                case 2:
+                    break;
+
+                case 3:
+                    await DeleteFile(MySelectedSong);
+                    break;
+
+                case 4:
+                    await NavigateToArtistsPage(1);
+                    break;
+
+                case 5:
+                    await NavigateToAlbumsPage(1);
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 }

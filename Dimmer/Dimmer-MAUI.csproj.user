@@ -55,6 +55,9 @@
     <MauiXaml Update="CustomPopUpViews\SleepTimerSelectionPopup.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
+    <MauiXaml Update="CustomPopUpViews\SongContextMenuPopupView.xaml">
+      <SubType>Designer</SubType>
+    </MauiXaml>
     <MauiXaml Update="CustomPopUpViews\SongToPlaylistPopup.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
@@ -70,6 +73,9 @@
     <MauiXaml Update="CustomPopUpViews\EditSongPopup.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
+    <MauiXaml Update="Views\Desktop\AlbumsPageD.xaml">
+      <SubType>Designer</SubType>
+    </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\DimmerWindow.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
@@ -83,9 +89,6 @@
       <SubType>Designer</SubType>
     </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\MiniControlNotificationView.xaml">
-      <SubType>Designer</SubType>
-    </MauiXaml>
-    <MauiXaml Update="Views\Desktop\CustomViews\PlayPauseView.xaml">
       <SubType>Designer</SubType>
     </MauiXaml>
     <MauiXaml Update="Views\Desktop\CustomViews\SongTagsView.xaml">

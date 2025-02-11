@@ -6,8 +6,10 @@
              xmlns:converters="clr-namespace:Dimmer_MAUI.Utilities.TypeConverters"
              xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"
              x:DataType="vm:HomePageVM"             
-             x:Name="myPage"        
+             x:Name="myPage"     
+        
         >
+    
    
     <Window.TitleBar>
         <TitleBar Title="Dimmer" x:Name="DimmerTitleBar" 
@@ -20,10 +22,11 @@
             </TitleBar.Resources>
             
             <TitleBar.Content>
-                <SearchBar Text="{Binding SearchText}" x:Name="SearchSongSB" HeightRequest="30"
+                <SearchBar Text="{Binding SearchText}" 
                            
-                           WidthRequest="500" Placeholder="Type To Search..." TextChanged="SearchSongSB_TextChanged" 
-                        IsVisible="{Binding IsMultiSelectOn, Converter={x:StaticResource BoolToInverse}}"   >
+                           x:Name="SearchSongSB" HeightRequest="30"                           
+                           WidthRequest="500" TextChanged="SearchSongSB_TextChanged" >
+
                 </SearchBar>
             </TitleBar.Content>
 
@@ -35,20 +38,21 @@
                             <MenuFlyoutItem Text="sss"/>
                         </MenuFlyout>
                     </FlyoutBase.ContextFlyout>
-                    
+                    <ImageButton Source="threesquares.png" Clicked="Minimize_Clicked"/>
+
                     <ImageButton x:Name="StickTopImgBtn" Clicked="StickTopImgBtn_Clicked" IsVisible="{Binding IsStickToTop}"
                                  Source="pushpined.png" WidthRequest="30" HeightRequest="30">
                         
                     </ImageButton>
                     <ImageButton x:Name="UnStickTopImgBtn" Clicked="UnStickTopImgBtn_Clicked"
-                                 Source="pushpin.png" WidthRequest="30" HeightRequest="30">
+                                 Source="pin.png" WidthRequest="30" HeightRequest="30">
                         
                     </ImageButton>
-
+                    
                     <syncf:SfEffectsView BackgroundColor="Transparent" Opacity="0.7"
                             TouchUp="SfEffectsView_TouchUp">
-                        <Image  Source="christmas_tree.gif" x:Name="EventEmoji" IsVisible="True" 
-       WidthRequest="30" IsAnimationPlaying="True" />
+                        <Image Source="newyear.png" x:Name="EventEmoji" IsVisible="True" 
+       WidthRequest="30" />
                     </syncf:SfEffectsView>
 
                     <syncf:SfEffectsView BackgroundColor="Transparent" Opacity="0.7"

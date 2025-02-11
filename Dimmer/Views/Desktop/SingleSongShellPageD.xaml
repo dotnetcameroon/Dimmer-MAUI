@@ -3,15 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Dimmer_MAUI.Views.Desktop.SingleSongShellPageD"
             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:m="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
-            
             xmlns:converters="clr-namespace:Dimmer_MAUI.Utilities.TypeConverters"
             x:DataType="vm:HomePageVM"
             xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"             
             xmlns:models="clr-namespace:Dimmer_MAUI.Utilities.Models"     
              xmlns:cw="clr-namespace:Dimmer_MAUI.Views.CustomViews"
-             xmlns:syncf="http://schemas.syncfusion.com/maui/toolkit"   
-             xmlns:ratingsView="clr-namespace:Dimmer_MAUI.Utilities.OtherUtils.CustomControl.RatingsView.Views"
+             xmlns:syncf="http://schemas.syncfusion.com/maui/toolkit"                
              x:Name="myPage" 
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False">
@@ -20,55 +17,35 @@
             <converters:DurationConverterFromMsToTimeSpan x:Key="DurationConverter"/>
             <converters:BytesToMegabytesConverter x:Key="FileSizeConverter"/>
             <converters:BytesArrayToImageSource x:Key="BytesToImageConverter"/>
-            <converters:BoolToImageConverter x:Key="BoolToImage"/>
+            
             <converters:BoolToInverseConverter x:Key="BoolToInverse"/>
             <converters:IndexToVisibilityConverter x:Key="IndexToVisibilityConverter"/>
             <converters:DateTimeToLocalDateConverter x:Key="DateTimeConverter"/>
             <converters:DateTimeToLocalTimeConverter x:Key="DateTimeToTimeConverter"/>
             <converters:BoolToYesNoConverter x:Key="BoolToYesNo"/>
-            <MenuFlyout x:Key="LyricsContentMenu">
-                <MenuFlyoutItem Text="Download Song Cover" Command="{Binding FetchSongCoverImageCommand}" CommandParameter="{Binding SelectedSongToOpenBtmSheet}" x:DataType="vm:HomePageVM"/>
-                <MenuFlyoutItem Text="Show File in Folder" Command="{Binding OpenSongFolderCommand}"/>
-            </MenuFlyout>
-
-            <DataTemplate x:Key="SyncLyricsColView" x:DataType="models:LyricPhraseModel">
-                <Border Stroke="Transparent" Margin="5,0" x:Name="LyrBorder">
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup Name="CommonStates">
-                            <VisualState Name="Normal">
-                                <VisualState.Setters>
-                                    <Setter Property="BackgroundColor" Value="Transparent"/>
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
-
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="SeekSongPosFromLyric_Tapped"/>
-                    </Border.GestureRecognizers>
-
-                    <Label Text="{Binding Text}" Margin="0,5" 
-                           HorizontalTextAlignment="Center" 
-                           FontSize="60" >
-                        <Label.Triggers>
-
-                        </Label.Triggers>
-                    </Label>
-                </Border>
-            </DataTemplate>
+         
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid>
-        <Image Source="{Binding SelectedSongToOpenBtmSheet.CoverImagePath}" Opacity="0.08"
+    <Grid x:Name="MainDock">
+        <Grid.GestureRecognizers>
+            <DropGestureRecognizer AllowDrop="True" x:Name="mainDockDropGest" 
+                           DragOver="DropGestureRecognizer_DragOver"
+                           DragLeave="DropGestureRecognizer_DragLeave"
+                           Drop="DropGestureRecognizer_Drop"/>
+        </Grid.GestureRecognizers>
+        <Image Source="{Binding MySelectedSong.CoverImagePath}" Opacity="0.08"
                 Aspect="AspectFill" x:Name="PageBGImg"
             x:DataType="vm:HomePageVM"/>
+        
         <toolkit:DockLayout x:Name="NormalNowPlayingUI" BackgroundColor="Transparent">
+            
 
             <cw:MediaPlaybackControlsView toolkit:DockLayout.DockPosition="Bottom"
                                     x:Name="MediaPlayBackCW" IsVisible="True"/>
 
-            <Grid ColumnDefinitions="Auto,*"  toolkit:DockLayout.DockPosition="Top" 
+            <Grid ColumnDefinitions="Auto,*"
+                  toolkit:DockLayout.DockPosition="Top" 
                 x:Name="NowPlayingGrid" IsVisible="True" BackgroundColor="Transparent">
                 <Grid.Resources>
                     <ResourceDictionary>
@@ -78,37 +55,42 @@
                         </Style>
                     </ResourceDictionary>
                 </Grid.Resources>
-                <VerticalStackLayout Grid.Column="0" Margin="10" BackgroundColor="Transparent"
-                                    WidthRequest="250" Spacing="10" x:DataType="vm:HomePageVM">
-                    <Grid BackgroundColor="Transparent" ToolTipProperties.Text="Click 😉">
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="NPSongImage_Tapped"/>
-                        </Grid.GestureRecognizers>
-                        <toolkit:AvatarView ImageSource="{Binding SelectedSongToOpenBtmSheet.CoverImagePath}" 
-                        WidthRequest="250" HeightRequest="250" BorderWidth="0" CornerRadius="25"
-                                            />
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                      ColumnDefinitions="*" RowSpacing="15"
+                      Grid.Column="0" Margin="10" 
+                                    WidthRequest="250" x:DataType="vm:HomePageVM">
+                    <ImageButton
+                        Grid.Row="0" 
+                        x:Name="ToggleShellPane" 
+                        Clicked="ToggleShellPane_Clicked"
+                        Source="hamburgermenu.png">
+                        
+                    </ImageButton>
+                    <ImageButton x:Name="ToggleFullScreen"  
+                                 Grid.Row="1" 
+                                 Clicked="ToggleFullScreen_Clicked"
+                        Source="maximizes.png">
+                        
+                    </ImageButton>
 
-                        <!--<Image Source="red_heart.gif" HeightRequest="100" IsVisible="{Binding IsAnimatingFav}"
-                                   WidthRequest="100" IsAnimationPlaying="False" ZIndex="1"/>-->
-                    </Grid>
-                    <Label Text="{Binding SelectedSongToOpenBtmSheet.ArtistName}" HorizontalTextAlignment="Center"
-                        FontSize="13" TextColor="Grey"/>
-                    <Label Text="{Binding SelectedSongToOpenBtmSheet.Title}" HorizontalTextAlignment="Center"
-                            FontSize="16"/>
-
-                    <HorizontalStackLayout Spacing="5" HorizontalOptions="Center" BackgroundColor="Transparent"
-                                           x:DataType="vm:HomePageVM">
-                        <ImageButton Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
+                    <HorizontalStackLayout 
+                        Grid.Row="2"  HorizontalOptions="Center"
+                        Spacing="5" x:DataType="vm:HomePageVM">
+                        <ImageButton 
+                            Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
                             HeightRequest="25" >
                             <ImageButton.CommandParameter>
                                 <x:Int32>1</x:Int32>
                             </ImageButton.CommandParameter>
+                            
                             <ImageButton.Source>
                                 <FileImageSource File="youtube.png"/>
                             </ImageButton.Source>
                         </ImageButton>
 
-                        <ImageButton Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
+                        <ImageButton
+                            Grid.Row="3" Grid.Column="1"
+                            Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
                                 HeightRequest="25">
                             <ImageButton.CommandParameter>
                                 <x:Int32>2</x:Int32>
@@ -118,7 +100,8 @@
                             </ImageButton.Source>
                         </ImageButton>
 
-                        <ImageButton Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
+                        <ImageButton                             
+                            Command="{Binding BindingContext.CntxtMenuSearchCommand,Source={x:Reference myPage}}"
                             HeightRequest="25" >
                             <ImageButton.CommandParameter>
                                 <x:Int32>0</x:Int32>
@@ -129,33 +112,40 @@
                         </ImageButton>
                     </HorizontalStackLayout>
 
-                    <Image HeightRequest="25" HorizontalOptions="Center" IsVisible="{Binding SelectedSongToOpenBtmSheet.HasSyncedLyrics}"
-                           Source="musicnote.gif">                        
-                    </Image>
 
-
-                    <ImageButton HeightRequest="45" HorizontalOptions="Center"
-                                Clicked="ToggleFocusModeClicked" IsVisible="False"
-                                 Source="dndd.png">                        
-                    </ImageButton>
-
-                    <syncf:SfChipGroup ChipType="Choice" Grid.Row="0" 
-                                       BackgroundColor="Transparent"  x:Name="RatingChipCtrl"
-                                       
+                    <syncf:SfChipGroup ChipType="Choice" Grid.Row="3" 
+                                        x:Name="RatingChipCtrl" HorizontalOptions="Center"
+                                       ChipImageSize="80" ChipTextSize="70"
                                        ChipClicked="RatingChipCtrl_ChipClicked" 
                                        ChipTextColor="White" SelectedChipTextColor="White"
-                                       HorizontalOptions="Start" SelectionIndicatorColor="DarkSlateBlue" 
+                                       SelectionIndicatorColor="DarkSlateBlue" 
                                        SelectedChipBackground="DarkSlateBlue"
                                        >
                         <syncf:SfChipGroup.ChipLayout>
-                            <HorizontalStackLayout Spacing="10" WidthRequest="300"
-                              HorizontalOptions="Start" x:Name="ratingHSL"/>
+                            <HorizontalStackLayout Spacing="10"             
+                              HorizontalOptions="Center" x:Name="ratingHSL"/>
+                            
                         </syncf:SfChipGroup.ChipLayout>
                         <syncf:SfChipGroup.Items>
-                            <syncf:SfChip Text="Love It" x:Name="LoveRate" CommandParameter="4" Clicked="RatingChipCtrl_ChipClicked"/>
-                            <syncf:SfChip Text="Hate it" x:Name="HateRate" CommandParameter="2" Clicked="RatingChipCtrl_ChipClicked"/>
+                            <syncf:SfChip Text="❤️" x:Name="LoveRate" CommandParameter="5"                                          
+                                          Clicked="RatingChipCtrl_ChipClicked"
+                                          ToolTipProperties.Text="Love It" TextColor="DarkSlateBlue"/>
+                            <syncf:SfChip Text="🤖" x:Name="NeutralRate" CommandParameter="0" Clicked="RatingChipCtrl_ChipClicked"
+                                          ToolTipProperties.Text="Neutral"/>
+                            <syncf:SfChip Text="💔" x:Name="HateRate" CommandParameter="1" Clicked="RatingChipCtrl_ChipClicked"
+                                          TextColor="White"
+                                          ToolTipProperties.Text="Dislike It"/>
                         </syncf:SfChipGroup.Items>
                     </syncf:SfChipGroup>
+
+                    <Image HeightRequest="25" HorizontalOptions="Center"                            
+                           IsVisible="{Binding MySelectedSong.HasSyncedLyrics}"
+                           Source="lyrics.png"
+                           Grid.Row="4" 
+                           ToolTipProperties.Text="There are Sync Lyrics">
+                    </Image>
+
+
 
                     <!--<HorizontalStackLayout HorizontalOptions="Center"
                                            Spacing="5">
@@ -165,7 +155,7 @@
                         <ImageButton Source="{AppThemeBinding Dark=plus_d.png,Light=plus_l.png}"
                                      />
                     </HorizontalStackLayout>-->
-                    </VerticalStackLayout>
+                    </Grid>
 
                 <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="5">
                     <syncf:SfChipGroup Grid.Row="0" HorizontalOptions="Center"
@@ -183,67 +173,57 @@
                         <syncf:SfChip Text="Sync Lyrics" x:Name="SyncLyricsChip" CommandParameter="0"/>
                         <syncf:SfChip Text="Plain Lyrics" x:Name="PlainLyricsChip"  CommandParameter="1" IsVisible="False"/>
                         <syncf:SfChip Text="Search Lyrics" x:Name="SearchLyricsChip"  CommandParameter="2"/>
-                        <syncf:SfChip Text="Details" x:Name="SongDetailsChip"  CommandParameter="3" FontSize="30"/>
+                        <syncf:SfChip Text="Details" x:Name="SongDetailsChip"  CommandParameter="3" FontSize="16"/>
                         <syncf:SfChip Text="SongStats" x:Name="SongStatsChip"  CommandParameter="4"/>
                 
                     </syncf:SfChipGroup>
                 
-                <Grid  x:Name="SyncedLyricGrid" Grid.Row="1" IsVisible="True" Margin="10,0">
-                    <Border >
-                            <CollectionView x:Name="LyricsColView" ItemsSource="{Binding SelectedSongToOpenBtmSheet.SyncLyrics}"
-                   SelectionChanged="LyricsColView_SelectionChanged" 
-                   SelectionMode="Single" SelectedItem="{Binding CurrentLyricPhrase}"
-                   EmptyView="No Syncronized Lyrics ..." >
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:LyricPhraseModel">
-                                        <Border Stroke="Transparent" Margin="5,0" x:Name="LyrBorder">
-                                            <VisualStateManager.VisualStateGroups>
-                                                <VisualStateGroup Name="CommonStates">
-                                                    <VisualState Name="Normal">
-                                                        <VisualState.Setters>
-                                                            <Setter Property="BackgroundColor" Value="Transparent"/>
-                                                        </VisualState.Setters>
-                                                    </VisualState>
-                                                </VisualStateGroup>
-                                            </VisualStateManager.VisualStateGroups>
+                    <Grid x:Name="SyncedLyricGrid" Grid.Row="1" IsVisible="True" Margin="10,0">
+                        <CollectionView x:Name="LyricsColView" ItemsSource="{Binding MySelectedSong.SyncLyrics}"
+                                        SelectionChanged="LyricsColView_SelectionChanged" SelectionMode="Single" SelectedItem="{Binding CurrentLyricPhrase}"
+                                        EmptyView="No Syncronized Lyrics ...">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:LyricPhraseModel">
+                                    
+                                    <Label x:Name="LyrBorder" Text="{Binding Text}"
+                                           Loaded="Label_Loaded" SizeChanged="LyrBorder_SizeChanged"
+                                           ParentChanged="LyrBorder_ParentChanged" FontSize="{Binding NowPlayingLyricsFontSize}" 
+                                           HorizontalTextAlignment="Center">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="SeekSongPosFromLyric_Tapped"/>
+                                        </Label.GestureRecognizers>
 
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Tapped="SeekSongPosFromLyric_Tapped"/>
-                                            </Border.GestureRecognizers>
+                                    </Label>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
 
-                                            <Label Text="{Binding Text}" Margin="0,5" Loaded="Label_Loaded"
-                                                   HorizontalTextAlignment="Center"
-                                                   FontSize="30">
-                                                
-                                            </Label>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>                        
-                    </Border>
-                </Grid>
-                <Grid x:Name="PlainLyricsGrid" Grid.Row="1" IsVisible="False" Margin="10,0">
-                    <Border>
-                        <ScrollView>
-                            <Label Text="{Binding SelectedSongToOpenBtmSheet.UnSyncLyrics}"/>
-                        </ScrollView>
-                    </Border>
-                </Grid>
+                    </Grid>
+                    
+                    <Grid x:Name="PlainLyricsGrid" Grid.Row="1" IsVisible="False" Margin="10,0">
+                        <Border>
+                            <ScrollView>
+                                <Label Text="{Binding MySelectedSong.UnSyncLyrics}"/>
+                            </ScrollView>
+                        </Border>
+                    </Grid>
 
-                <Grid x:Name="SearchLyricsGrid" Grid.Row="1" 
-                      IsVisible="False" Margin="10,0">
-                    <Border>
-                        <Grid BackgroundColor="Transparent"
-Margin="5,5" RowDefinitions="Auto, *">
+                    <Grid x:Name="SearchLyricsGrid" Grid.Row="1" 
+                          IsVisible="False" Margin="10,0">
+                        <Border>
+                            <Grid BackgroundColor="Transparent" Margin="5,5" RowDefinitions="Auto, *">
                             <Grid.Resources>
                                 <converters:BoolToInverseConverter x:Key="BoolToInverse"/>
                                 <converters:CountToVisibilityConverter x:Key="CountToVisibility"/>
 
                             </Grid.Resources>
                             <VerticalStackLayout Grid.Row="0" Spacing="10" 
-                 Margin="5" HorizontalOptions="Start">
+                                                 Margin="5" HorizontalOptions="Start">
 
-                                <Label Text="{Binding SelectedSongToOpenBtmSheet.FilePath,StringFormat='Full Path: {0}'}"/>
+                                <Label Text="{Binding MySelectedSong.FilePath,StringFormat='Full Path: {0}'}"/>
                                 <Entry Placeholder="Song Title" Text="{Binding LyricsSearchSongTitle}"/>
                                 <Entry Placeholder="Song Album" Text="{Binding LyricsSearchAlbumName}"/>
                                     <Entry Placeholder="Song Artist" Text="{Binding LyricsSearchArtistName}"/>
@@ -328,7 +308,7 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                 <HorizontalStackLayout IsVisible="{Binding Instrumental, Converter={StaticResource BoolToInverse}}">
 
                                                     <Button Text="Plain Lyrics" HorizontalOptions="Center" 
-                                        Clicked="ViewLyricsBtn_Clicked" BackgroundColor="DarkOrange"
+                                        Clicked="ViewLyricsBtn_Clicked" BackgroundColor="#5A4CA3"
                                         IsVisible="{Binding IsSynced, Converter= {x:StaticResource BoolToInverse}}"/>
 
                                                     <Button Text="Synced Lyrics" HorizontalOptions="Center" 
@@ -341,8 +321,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
                         </Grid>
-                    </Border>
-                </Grid>
+                        </Border>
+                    </Grid>
+                    
                     <Grid x:Name="SongStatsGrid" Grid.Row="1" IsVisible="False" Margin="10,0" >
                         <Border >
 
@@ -354,9 +335,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                   PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Days Since First Dimm:" 
-           FontSize="24" FontAttributes="Bold" />
+           FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding DaysSinceFirstDimm,StringFormat='{0} Days ago'}" 
-           FontSize="24" FontAttributes="Bold" />
+           FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout><FlexLayout JustifyContent="SpaceBetween">
                                         <FlexLayout.GestureRecognizers>
@@ -364,9 +345,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                   PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Date of First Dimm:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding DateOfFirstDimm,StringFormat='{0}'}" 
-                                              FontSize="24" FontAttributes="Bold" />
+                                              FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     
@@ -376,9 +357,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Completed Dimms:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding SpecificSongPlaysCompleted.Count,StringFormat='{0}'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     <FlexLayout JustifyContent="SpaceBetween">
@@ -387,9 +368,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Average Dimms Per Day:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding AverageDimmsPerDay,StringFormat='{0:n1} Dimms/Day'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     <FlexLayout JustifyContent="SpaceBetween">
@@ -398,9 +379,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Eddington Number:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding SpecificSongEddingtonNumber,StringFormat='{0}'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     <FlexLayout JustifyContent="SpaceBetween">
@@ -409,9 +390,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Completion Rate:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding SpecificSongCompletionRate,StringFormat='{0:n2}%'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     <FlexLayout JustifyContent="SpaceBetween">
@@ -420,9 +401,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Number of times Completed:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding SpecificSongPlaysCompleted.Count,StringFormat='{0}'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     <FlexLayout JustifyContent="SpaceBetween">
@@ -431,9 +412,9 @@ Margin="5,5" RowDefinitions="Auto, *">
                                                                       PointerExited="FocusModePointerRec_PExited"/>
                                         </FlexLayout.GestureRecognizers>
                                         <Label Text="Number of times Started:" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
                                         <Label Text="{Binding SpecificSongPlaysStarted.Count,StringFormat='{0}'}" 
-                                               FontSize="24" FontAttributes="Bold" />
+                                               FontSize="16" FontAttributes="Bold" />
 
                                     </FlexLayout>
                                     
@@ -442,7 +423,7 @@ Margin="5,5" RowDefinitions="Auto, *">
                                 
                             </ScrollView>
                         </Border>
-                </Grid>
+                    </Grid>
 
                     <Grid x:Name="SongDetails" Grid.Row="1"
                           IsVisible="False" Margin="10,0">
@@ -466,85 +447,54 @@ Margin="5,5" RowDefinitions="Auto, *">
                                 </ResourceDictionary>
                             </ScrollView.Resources>
                             <VerticalStackLayout >
-                                <HorizontalStackLayout>
-                                    <Image WidthRequest="20" HeightRequest="20" VerticalOptions="Center"
-                                       Source="musicnote.gif">
-                                    </Image>
-                                    <Label Text="Information" FontSize="26"/>
-                                </HorizontalStackLayout>
-                                <VerticalStackLayout>
-
-                                        <Label Text="Song Details" FontSize="28" Margin="0,0,0,8"
-                                               TextColor="DarkOrange" HorizontalOptions="Start"/>
+                                <VerticalStackLayout>                                    
                                     <syncf:SfEffectsView>
-                                        
-                                    <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Title}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding  SelectedSongToOpenBtmSheet.Title}"/>
+
+                                        <HorizontalStackLayout >
+                                            
+                                            <ImageButton Source="textfieldfocus.png" WidthRequest="30"/>
+                                            <Label Text="{Binding  MySelectedSong.Title}"
+                                                   VerticalOptions="Center"/>
                             
                                         </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Person}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding  SelectedSongToOpenBtmSheet.ArtistName}"/>
+                                            <Image Source="lyricist.png" WidthRequest="30"/>
+                                            <Label Text="{Binding  MySelectedSong.ArtistName}"/>
 
                                         </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Album}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding SelectedSongToOpenBtmSheet.AlbumName}"/>
+                                            <Image Source="musicalbum.png" WidthRequest="30"/>
+                                            <Label Text="{Binding MySelectedSong.AlbumName}"/>
 
                                         </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Style}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding SelectedSongToOpenBtmSheet.GenreName}"/>
+                                            
+                                            <Label Text="{Binding MySelectedSong.GenreName}"/>
 
                                         </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Date_range}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding SelectedSongToOpenBtmSheet.ReleaseYear}"/>
+                                            
+                                            <Label Text="{Binding MySelectedSong.ReleaseYear}"/>
 
                                         </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                            <Image>
-                                                <Image.Source>
-                                                    <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Numbers}"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <Label Text="{Binding SelectedSongToOpenBtmSheet.TrackNumber}"/>
+                                            
+                                            <Label Text="{Binding MySelectedSong.TrackNumber}"/>
 
                                     </HorizontalStackLayout>
                                     </syncf:SfEffectsView>
@@ -553,27 +503,19 @@ Margin="5,5" RowDefinitions="Auto, *">
 
                                 <VerticalStackLayout>
                                     <Label Text="File Details" FontSize="28" 
-                    TextColor="DarkOrange" HorizontalOptions="Start"/>
+                    TextColor="#5A4CA3" HorizontalOptions="Start"/>
 
                                     <syncf:SfEffectsView TouchUpCommand="{Binding OpenSongFolderCommand}">
                                         <HorizontalStackLayout>
-                                        <Image>
-                                            <Image.Source>
-                                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Directions}"/>
-                                            </Image.Source>
-                                        </Image>
-                                        <Label Text="{Binding SelectedSongToOpenBtmSheet.FilePath}" LineBreakMode="TailTruncation"/>
+                                        
+                                        <Label Text="{Binding MySelectedSong.FilePath}" LineBreakMode="TailTruncation"/>
                                     </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                        <Image>
-                                            <Image.Source>
-                                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Format_size}"/>
-                                            </Image.Source>
-                                        </Image>
-                                        <Label Text="{Binding SelectedSongToOpenBtmSheet.FileSize, Converter={StaticResource FileSizeConverter}}"/>
+                                        
+                                        <Label Text="{Binding MySelectedSong.FileSize, Converter={StaticResource FileSizeConverter}}"/>
                                     </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
@@ -581,42 +523,23 @@ Margin="5,5" RowDefinitions="Auto, *">
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout>
-                                    <Label Text="Audio Details" FontSize="25" 
-                    TextColor="DarkOrange"/>
+                                    <Label Text="Audio Details" FontSize="16" 
+                    TextColor="#5A4CA3"/>
                                     <syncf:SfEffectsView>
 <HorizontalStackLayout>
-                                        <Image>
-                                            <Image.Source>
-                                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Timer}"/>
-                                            </Image.Source>
-                                        </Image>
+                                        
                                         <Label 
-                     Text="{Binding SelectedSongToOpenBtmSheet.DurationInSeconds, Converter={StaticResource DurationConverter}}"/>
+                     Text="{Binding MySelectedSong.DurationInSeconds, Converter={StaticResource DurationConverter}}"/>
                                     </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
                                     <syncf:SfEffectsView>
                                         <HorizontalStackLayout>
-                                        <Image>
-                                            <Image.Source>
-                                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Info}"/>
-                                            </Image.Source>
-                                        </Image>
-                                        <Label Text="{Binding SelectedSongToOpenBtmSheet.FileFormat}"/>
+                                        
+                                        <Label Text="{Binding MySelectedSong.FileFormat}"/>
                                     </HorizontalStackLayout>
 
                                     </syncf:SfEffectsView>
-                                    <syncf:SfEffectsView>
-                                        <HorizontalStackLayout>
-                                        <Image>
-                                            <Image.Source>
-                                                <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Rate_review}"/>
-                                            </Image.Source>
-                                        </Image>
-                                        <Label Text="{Binding SelectedSongToOpenBtmSheet.BitRate, StringFormat='{0} kbps'}"/>
-                                    </HorizontalStackLayout>
-                                    </syncf:SfEffectsView>
-                                    
 
                                 </VerticalStackLayout>
 
@@ -636,9 +559,9 @@ Margin="5,5" RowDefinitions="Auto, *">
 
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="2" 
                                BackgroundColor="Transparent">
-                    <Label Text="{Binding CurrentPositionInSeconds, Converter={StaticResource DurationConverter}}" FontSize="18"/>
+                    <Label Text="{Binding CurrentPositionInSeconds, Converter={StaticResource DurationConverter}}" FontSize="16"/>
                     <Label Text="{Binding TemporarilyPickedSong.DurationInSeconds, StringFormat='/ {0}', Converter={StaticResource DurationConverter}}"
-                   Opacity="0.6" FontSize="18"/>
+                   Opacity="0.6" FontSize="16"/>
                 </HorizontalStackLayout>
 
                     <Grid RowDefinitions="*" ColumnDefinitions="*" BackgroundColor="Transparent">
@@ -658,9 +581,7 @@ Margin="5,5" RowDefinitions="Auto, *">
                             <PointerGestureRecognizer PointerPressed="PointerGestureRecognizer_PointerPressed" 
                                        PointerReleased="PointerGestureRecognizer_PointerReleased"/>
                         </ImageButton.GestureRecognizers>
-                        <ImageButton.Source>
-                            <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Skip_previous}"/>
-                        </ImageButton.Source>
+                        
                     </ImageButton>
                     <Slider Value="{Binding CurrentPositionPercentage, Mode=TwoWay}" 
                             MinimumTrackColor="DarkSlateBlue" x:Name="slid" 
@@ -671,21 +592,19 @@ Margin="5,5" RowDefinitions="Auto, *">
                     <ImageButton Command="{Binding PlayNextSongCommand}" toolkit:DockLayout.DockPosition="Right"
                   x:Name="rightImgBtn" ToolTipProperties.Text="Play Next"
                                  Grid.Column="2">
-                        <ImageButton.Source>
-                            <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Skip_next}"/>
-                        </ImageButton.Source>
+                        
                     </ImageButton>
 
                 </Grid>
 
-                <Label Text="{Binding SelectedSongToOpenBtmSheet.Title}"
+                <Label Text="{Binding MySelectedSong.Title}"
 FontSize="36" HorizontalOptions="Center" FontAttributes="Bold"/>
 
-                <Label Text="{Binding SelectedSongToOpenBtmSheet.ArtistName}"
-FontSize="23" TextColor="Grey" HorizontalOptions="Center"/>
+                <Label Text="{Binding MySelectedSong.ArtistName}"
+FontSize="16" TextColor="Grey" HorizontalOptions="Center"/>
 
                 <ImageButton HeightRequest="45" HorizontalOptions="Center"
-                             Clicked="ToggleFocusModeClicked" Source="dndd.png">                    
+                             Clicked="ToggleFocusModeClicked" Source="minimize.png">                    
                 </ImageButton>
 
                 <ImageButton HeightRequest="45" HorizontalOptions="Center"

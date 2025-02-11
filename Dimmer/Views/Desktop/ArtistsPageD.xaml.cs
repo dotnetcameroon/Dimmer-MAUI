@@ -9,121 +9,224 @@ public partial class ArtistsPageD : ContentPage
     public ArtistsPageD(HomePageVM homePageVM)
     {
         InitializeComponent();
-        HomePageVM = homePageVM;
+        MyViewModel = homePageVM;
         this.BindingContext = homePageVM;
-        HomePageVM.GetAllArtistsCommand.Execute(null);
+        MyViewModel.GetAllArtistsCommand.Execute(null);
     }
 
   
-    public HomePageVM HomePageVM { get; }
+    public HomePageVM MyViewModel { get; }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        if (HomePageVM.SelectedAlbumOnArtistPage is not null)
+        if (MyViewModel.SelectedAlbumOnArtistPage is not null)
         {
-            HomePageVM.SelectedAlbumOnArtistPage.IsCurrentlySelected = false;
+            MyViewModel.SelectedAlbumOnArtistPage.IsCurrentlySelected = false;
         }
-        if (HomePageVM.SelectedArtistOnArtistPage is not null)
+        if (MyViewModel.SelectedArtistOnArtistPage is not null)
         {
-            HomePageVM.SelectedArtistOnArtistPage.IsCurrentlySelected = false;
+            MyViewModel.SelectedArtistOnArtistPage.IsCurrentlySelected = false;
         }
        
 
-        //AllAlbumsColView.SelectedItem = HomePageVM.SelectedAlbumOnArtistPage;
+        //AllAlbumsColView.SelectedItem = MyViewModel.SelectedAlbumOnArtistPage;
 
-        HomePageVM.CurrentPage = PageEnum.AllAlbumsPage;
-        AllArtistsColView.SelectedItem = HomePageVM.SelectedArtistOnArtistPage;
+        MyViewModel.CurrentPage = PageEnum.AllArtistsPage;
+        MyViewModel.CurrentPageMainLayout = MainDock;
+        AllArtistsColView.SelectedItem = MyViewModel.SelectedArtistOnArtistPage;
 
-        if (HomePageVM.SelectedSongToOpenBtmSheet is null)
+        if (MyViewModel.MySelectedSong is null)
         {
 
-            if (HomePageVM.TemporarilyPickedSong is not null)
+            if (MyViewModel.TemporarilyPickedSong is not null)
             {
-                HomePageVM.SelectedSongToOpenBtmSheet = HomePageVM.TemporarilyPickedSong;
-                HomePageVM.GetAllArtistsAlbum(song: HomePageVM.TemporarilyPickedSong, isFromSong: true);
+                MyViewModel.MySelectedSong = MyViewModel.TemporarilyPickedSong;
+                MyViewModel.GetAllArtistsAlbum(song: MyViewModel.TemporarilyPickedSong, isFromSong: true);
                 
             }
         }
         else
         {
-            HomePageVM.GetAllArtistsAlbum();
+            MyViewModel.GetAllArtistsAlbum();
         }
-        if (HomePageVM.SelectedSongToOpenBtmSheet is not null)
+        if (MyViewModel.SelectedArtistOnArtistPage is not null && MyViewModel.CurrentAppState == AppState.OnForeGround)
         {
-            AllArtistsColView.ScrollTo(HomePageVM.SelectedArtistOnArtistPage, null, ScrollToPosition.Center, false);
-            AllArtistsColView.SelectedItem = HomePageVM.SelectedArtistOnArtistPage;
+            AllArtistsColView.ScrollTo(MyViewModel.SelectedArtistOnArtistPage, null, ScrollToPosition.Center, false);
+            AllArtistsColView.SelectedItem = MyViewModel.SelectedArtistOnArtistPage;
         }
         
         
         
-    }
-    private async void SongInAlbumFromArtistPage_TappedToPlay(object sender, TappedEventArgs e)
-    {
-        HomePageVM.CurrentQueue = 1;
-        var s = (Border)sender;
-        var song = s.BindingContext as SongModelView;
-        await HomePageVM.PlaySong(song);
     }
 
     private async void SetSongCoverAsAlbumCover_Clicked(object sender, EventArgs e)
     {
         var send = (MenuFlyoutItem)sender;
         var song = send.BindingContext as SongModelView;
-        await HomePageVM.SetSongCoverAsAlbumCover(song!);
+        await MyViewModel.SetSongCoverAsAlbumCover(song!);
     }
 
     private void SearchBar_TextChanged(object sender, TextChangedEventArgs e)
     {
-        HomePageVM.SearchArtistCommand.Execute(SearchArtistBar.Text);
+        MyViewModel.SearchArtistCommand.Execute(SearchArtistBar.Text);
     }
-    private async void ShowArtistAlbums_Tapped(object sender, TappedEventArgs e)
+    private void ShowArtistAlbums_Tapped(object sender, TappedEventArgs e)
     {        
         var send = (View)sender;
 
         var curSel = send.BindingContext as AlbumModelView;
-        await HomePageVM.GetSongsFromAlbumId(curSel!.LocalDeviceId);
-        //await HomePageVM.GetAllAlbumInfos(curSel);
-        //await HomePageVM.ShowSpecificArtistsSongsWithAlbum(curSel);
+        MyViewModel.AllArtistsAlbumSongs=MyViewModel.GetAllSongsFromAlbumID(curSel!.LocalDeviceId);
+        //await MyViewModel.GetAllAlbumInfos(curSel);
+        //await MyViewModel.ShowSpecificArtistsSongsWithAlbum(curSel);
     }
 
-    private void AlbumSongsCV_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void PlaySong_Tapped(object sender, TappedEventArgs e)
     {
-        //if (AlbumSongsCV.IsLoaded)
-        //{
-        //    AlbumSongsCV.ScrollTo(HomePageVM.PickedSong, ScrollToPosition.MakeVisible);
-        //}
-    }
+        var send = (View)sender;
+        var song = (SongModelView)send.BindingContext;
 
-    
+        if (song is not null)
+        {
+            song.IsCurrentPlayingHighlight = false;
+        }
+
+        MyViewModel.PlaySong(song);
+    }
 
     private void PointerGestureRecognizer_PointerEntered(object sender, PointerEventArgs e)
     {
         var send = (Border)sender;
         var song = send.BindingContext! as SongModelView;
-        HomePageVM.SetContextMenuSong(song!);
+        MyViewModel.SetContextMenuSong(song!);
     }
 
     private void ImageButton_Clicked(object sender, EventArgs e)
     {
-        HomePageVM.LoadSongsFromArtistId(HomePageVM.SelectedArtistOnArtistPage.LocalDeviceId);
+        MyViewModel.AllArtistsAlbumSongs = MyViewModel.GetAllSongsFromArtistID(MyViewModel.SelectedArtistOnArtistPage.LocalDeviceId);
     }
 
-
-    ArtistModelView currentlySelectedArtist;
     private void ArtistView_TouchDown(object sender, EventArgs e)
     {
         SfEffectsView view = (SfEffectsView)sender;
         ArtistModelView artist = (view.BindingContext as ArtistModelView)!;
 
         //artist.IsCurrentlySelected = true;
-        HomePageVM.GetAllArtistAlbumFromArtist(artist);
-        
-        //await HomePageVM.GetAllArtistAlbumFromArtist(artist);
+        MyViewModel.GetAllArtistAlbumFromArtistModel(artist);
+
+        //await MyViewModel.GetAllArtistAlbumFromArtist(artist);
 
 
-        //var AlbumArtist = HomePageVM.AllLinks!.FirstOrDefault(x => x.ArtistId == artist.LocalDeviceId)!.AlbumId;
-        //var album = HomePageVM.AllAlbums.FirstOrDefault(x => x.LocalDeviceId == AlbumArtist);
-        //HomePageVM.GetAllArtistsAlbum(album: album, isFromSong: false);
+        //var AlbumArtist = MyViewModel.AllLinks!.FirstOrDefault(x => x.ArtistId == artist.LocalDeviceId)!.AlbumId;
+        //var album = MyViewModel.AllAlbums.FirstOrDefault(x => x.LocalDeviceId == AlbumArtist);
+        //MyViewModel.GetAllArtistsAlbum(album: album, isFromSong: false);
     }
+    private void PlayNext_Clicked(object sender, EventArgs e)
+    {
+        var send = (MenuFlyoutItem)sender;
+        var song = send.BindingContext as SongModelView;
+        MyViewModel.AddNextInQueueCommand.Execute(song);
+    }
+    List<string> supportedFilePaths;
+    bool isAboutToDropFiles = false;
+    private async void DropGestureRecognizer_DragOver(object sender, DragEventArgs e)
+    {
+        try
+        {
+
+            if (!isAboutToDropFiles)
+            {
+                isAboutToDropFiles = true;
+
+                var send = sender as View;
+                if (send is null)
+                {
+                    return;
+                }
+                send.Opacity = 0.7;
+#if WINDOWS
+                var WindowsEventArgs = e.PlatformArgs.DragEventArgs;
+                var dragUI = WindowsEventArgs.DragUIOverride;
+
+
+                var items = await WindowsEventArgs.DataView.GetStorageItemsAsync();
+                e.AcceptedOperation = DataPackageOperation.None;
+                supportedFilePaths = new List<string>();
+
+                if (items.Count > 0)
+                {
+                    foreach (var item in items)
+                    {
+                        if (item is Windows.Storage.StorageFile file)
+                        {
+                            /// Check file extension
+                            string fileExtension = file.FileType.ToLower();
+                            if (fileExtension != ".mp3" && fileExtension != ".flac" &&
+                                fileExtension != ".wav" && fileExtension != ".m4a")
+                            {
+                                e.AcceptedOperation = DataPackageOperation.None;
+                                dragUI.IsGlyphVisible = true;
+                                dragUI.Caption = $"{fileExtension.ToUpper()} Files Not Supported";
+                                continue;
+                                //break;  // If any invalid file is found, break the loop
+                            }
+                            else
+                            {
+                                dragUI.IsGlyphVisible = false;
+                                dragUI.Caption = "Drop to Play!";
+                                Debug.WriteLine($"File is {item.Path}");
+                                supportedFilePaths.Add(item.Path.ToLower());
+                            }
+                        }
+                    }
+
+                }
+#endif
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+        }
+        //return Task.CompletedTask;
+    }
+    private async void DropGestureRecognizer_Drop(object sender, DropEventArgs e)
+    {
+        supportedFilePaths ??= new();
+        isAboutToDropFiles = false;
+        MyViewModel.LoadLocalSongFromOutSideApp(supportedFilePaths);
+        var send = sender as View;
+        if (send is null)
+        {
+            return;
+        }
+        send.Opacity = 1;
+        if (supportedFilePaths.Count > 0)
+        {
+            await send.AnimateRippleBounce();
+        }
+    }
+
+    private void DropGestureRecognizer_DragLeave(object sender, DragEventArgs e)
+    {
+        try
+        {
+            isAboutToDropFiles = false;
+            var send = sender as View;
+            if (send is null)
+            {
+                return;
+            }
+            send.Opacity = 1;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+        }
+    }
+
+    
+    
+
 }

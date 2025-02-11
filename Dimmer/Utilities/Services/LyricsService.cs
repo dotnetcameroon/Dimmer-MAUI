@@ -39,11 +39,11 @@ public class LyricsService : ILyricsService
             {
                 case MediaPlayerState.Initialized:
                     pState = MediaPlayerState.Initialized;
-                    LoadLyrics(PlayBackService.CurrentlyPlayingSong);
+                    await LoadLyrics(PlayBackService.CurrentlyPlayingSong);
                     break;
                 case MediaPlayerState.Playing:
                     pState = MediaPlayerState.Playing;
-                    LoadLyrics(PlayBackService.CurrentlyPlayingSong);
+                    await LoadLyrics(PlayBackService.CurrentlyPlayingSong);
                     //_currentLyricSubject.OnNext(new LyricPhraseModel() { Text = "No Lyrics" });
                     break;
                 case MediaPlayerState.Paused:
@@ -56,7 +56,7 @@ public class LyricsService : ILyricsService
                     break;
                 case MediaPlayerState.LyricsLoad:
                     pState = MediaPlayerState.LyricsLoad;
-                    LoadLyrics(PlayBackService.CurrentlyPlayingSong);
+                    await LoadLyrics(PlayBackService.CurrentlyPlayingSong);
                     break;
                 case MediaPlayerState.CoverImageDownload:
                     pState = MediaPlayerState.CoverImageDownload;
@@ -72,7 +72,7 @@ public class LyricsService : ILyricsService
 
 
     #region Manage Loadings and Initializations
-    public async void LoadLyrics(SongModelView song)
+    public async Task LoadLyrics(SongModelView song)
     {
         try
         {            
@@ -341,16 +341,16 @@ public class LyricsService : ILyricsService
         var sampleTime = 780;
         _lyricUpdateSubscription = PlayBackService.CurrentPosition
             .Sample(TimeSpan.FromMilliseconds(sampleTime))
-            .Subscribe(position =>
+            .Subscribe (async position =>
             {
 
                 double currentTimeinsSecs = position.CurrentTimeInSeconds;
-                UpdateCurrentLyricIndex(currentTimeinsSecs);
-
+                await UpdateCurrentLyricIndex(currentTimeinsSecs);
+                
             }, error => { Debug.WriteLine($"Error in subscription: {error.Message}"); });
     }
 
-    public void UpdateCurrentLyricIndex(double currentPositionInSeconds)
+    public async Task UpdateCurrentLyricIndex(double currentPositionInSeconds)
     {
         var lyrics = _synchronizedLyricsSubject.Value;
         if (lyrics is null || lyrics?.Count < 1)
@@ -361,7 +361,7 @@ public class LyricsService : ILyricsService
                 return;
             }
 
-            LoadLyrics(PlayBackService.CurrentlyPlayingSong);
+            await LoadLyrics(PlayBackService.CurrentlyPlayingSong);
             if (hasSyncedLyrics)
             {
                 _synchronizedLyricsSubject.OnNext(songSyncLyrics);
@@ -444,7 +444,7 @@ public class LyricsService : ILyricsService
     public async Task<(bool IsFetchSuccessful, Content[]? contentData)> FetchLyricsOnlineLrcLib(SongModelView song, bool useManualSearch = false, List<string>? manualSearchFields = null)
     {
         HttpClient client = new();
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Dimmer v0.5.2 (https://github.com/YBTopaz8/Dimmer-MAUI)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Dimmer v1.0.0 (https://github.com/YBTopaz8/Dimmer-MAUI)");
 
         try
         {
@@ -465,11 +465,11 @@ public class LyricsService : ILyricsService
                 return (false, Array.Empty<Content>());
             }
 
-            var potentialImages = await FetchLyricsOnlineLyrist(song.Title!, song.ArtistName!); ;
-            for (int i = 0; i < potentialImages.contentData?.Length; i++)
-            {
-                lyricsData[i].LinkToCoverImage = potentialImages.contentData[i].LinkToCoverImage;
-            }
+            //var potentialImages = await FetchLyricsOnlineLyrist(song.Title!, song.ArtistName!); ;
+            //for (int i = 0; i < potentialImages.contentData?.Length; i++)
+            //{
+            //    lyricsData[i].LinkToCoverImage = potentialImages.contentData[i].LinkToCoverImage;
+            //}
             return (true, lyricsData);
         }
         catch (HttpRequestException e)
@@ -522,76 +522,7 @@ public class LyricsService : ILyricsService
     }
 
     #endregion
-
     #region Fetch Lyrics Online from Lyrist
-
-    public async Task<(bool IsFetchSuccessful, Content[]? contentData)> FetchLyricsOnlineLyrist(string songTitle, string songArtistName)
-    {
-        HttpClient client = new HttpClient();
-        try
-        {
-            Content[]? contentData = null;
-            contentData = await SearchLyricsByTitleAndArtistNameToLyrist(songTitle, songArtistName, client);
-            return (true, contentData);
-        }
-        catch (HttpRequestException e)
-        {
-            Debug.WriteLine($"Request error: {e.Message}");
-            return (false, null);
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine($"Unexpected error: {e.Message}");
-            return (false, null);
-        }
-        finally
-        {
-            client.Dispose();
-        }
-    }
-
-    private async Task<Content[]> SearchLyricsByTitleAndArtistNameToLyrist(string songTitle, string songArtistName, HttpClient client)
-    {
-
-        string trackName = Uri.EscapeDataString(songTitle);
-        string url = $"https://lyrist.vercel.app/api/{trackName}/{songArtistName}";
-
-        // Send the GET request
-        HttpResponseMessage response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode(); // Throw if not a success code
-
-        // Read the response content
-        string content = await response.Content.ReadAsStringAsync();
-
-        var e = JsonSerializer.Deserialize<LyristApiResponse>(content);
-        var lyrics = new Content();
-        if (string.IsNullOrEmpty(e.Lyrics))
-        {
-            return Array.Empty<Content>();
-        }
-        lyrics.TrackName = e.Title;
-        lyrics.ArtistName = e.Artist;
-        lyrics.PlainLyrics = e.Lyrics;
-        lyrics.ListOfLinksToCoverImages.Add(e.Image);
-        
-        lyrics.Id = 1;
-        List<Content> contentList = new();
-        contentList.Add(lyrics);
-        return contentList.ToArray();
-
-    }
-
-    static async Task<byte[]>? DownloadSongImage(string coverImageURL)//, HttpClient client)
-    {
-        HttpClient client = new HttpClient();
-        HttpResponseMessage response = await client.GetAsync(coverImageURL);
-        response.EnsureSuccessStatusCode(); // Throw if not a success code
-
-        // Read the response content
-        byte[] ImageBytes = await response.Content.ReadAsByteArrayAsync();
-        client.Dispose();
-        return ImageBytes;
-    }
 
     public async Task<string> FetchAndDownloadCoverImage(string songTitle, string songArtistName, string albumName, SongModelView? song =null)
     {
@@ -621,18 +552,18 @@ public class LyricsService : ILyricsService
                 }
 
             }
-            byte[]? ImageBytes = null;
-            (_, Content[]? apiResponse) = await FetchLyricsOnlineLyrist(stringSongTitle, songArtistName);
-            if (apiResponse is null || apiResponse.Length < 1)
-            {
-                return string.Empty;
-            }
-            if (!string.IsNullOrEmpty(apiResponse[0]?.LinkToCoverImage))
-            {
-                ImageBytes = await DownloadSongImage(apiResponse[0]?.LinkToCoverImage!)!;
-                song.CoverImagePath = SaveOrGetCoverImageToFilePath(song.FilePath!, ImageBytes);
-                SongsManagementService.UpdateSongDetails(song);
-            }
+            //byte[]? ImageBytes = null;
+            //(_, Content[]? apiResponse) = await FetchLyricsOnlineLyrist(stringSongTitle, songArtistName);
+            //if (apiResponse is null || apiResponse.Length < 1)
+            //{
+            //    return string.Empty;
+            //}
+            //if (!string.IsNullOrEmpty(apiResponse[0]?.LinkToCoverImage))
+            //{
+            //    ImageBytes = await DownloadSongImage(apiResponse[0]?.LinkToCoverImage!)!;
+            //    song.CoverImagePath = SaveOrGetCoverImageToFilePath(song.FilePath!, ImageBytes);
+            //    SongsManagementService.UpdateSongDetails(song);
+            //}
 
             return string.IsNullOrEmpty(song.CoverImagePath) ? "NC" : song.CoverImagePath;
         
@@ -741,7 +672,7 @@ public class LyricsService : ILyricsService
             track.Lyrics.ParseLRC(Lyrics);
             songObj.HasSyncedLyrics = IsSynched;
 
-            track.Save();
+            //track.Save();
             
             songObj.SyncLyrics = new ObservableCollection<LyricPhraseModel>(
                 track.Lyrics.SynchronizedLyrics.Select(phrase => new LyricPhraseModel(phrase))

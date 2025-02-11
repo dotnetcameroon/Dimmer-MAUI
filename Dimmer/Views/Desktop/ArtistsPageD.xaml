@@ -4,7 +4,7 @@
              x:Class="Dimmer_MAUI.Views.Desktop.ArtistsPageD"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:converters="clr-namespace:Dimmer_MAUI.Utilities.TypeConverters"
-            xmlns:m="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+            
             xmlns:vm="clr-namespace:Dimmer_MAUI.ViewModels"
              xmlns:syncf="http://schemas.syncfusion.com/maui/toolkit"  
             xmlns:models="clr-namespace:Dimmer_MAUI.Utilities.Models"     
@@ -16,26 +16,19 @@
     <ContentPage.Resources>
         <ResourceDictionary>
             <converters:DurationConverterFromMsToTimeSpan x:Key="DurationConverter"/>
-            <converters:BoolToImageConverter x:Key="BoolToImage"/>
+            
             <converters:BoolToInverseConverter x:Key="BoolToInverse"/>
             <converters:EmptyStringToMessageConverter x:Key="EmptyStringToMsg"/>
-
-            <MenuFlyout x:Key="ArtistAlbumSongsContextMenu">
-                <MenuFlyoutItem Text="Edit Song Details">
-                    <MenuFlyoutItem.CommandParameter>
-                        <x:Int32>3</x:Int32>
-                    </MenuFlyoutItem.CommandParameter>
-                </MenuFlyoutItem>
-                <MenuFlyoutSeparator/>
-                <MenuFlyoutItem Text="Set Song Cover as Album Cover" 
-                                Clicked="SetSongCoverAsAlbumCover_Clicked"/>
-                
-                <MenuFlyoutItem Text="Show File in Folder" Command="{Binding BindingContext.OpenSongFolderCommand,  Source={x:Reference myPage}}"/>
-            </MenuFlyout>
-
+            
         </ResourceDictionary>
     </ContentPage.Resources>
-    <toolkit:DockLayout>
+    <toolkit:DockLayout  x:Name="MainDock">
+        <toolkit:DockLayout.GestureRecognizers >
+            <DropGestureRecognizer AllowDrop="True" x:Name="mainDockDropGest" 
+                           DragOver="DropGestureRecognizer_DragOver"
+                           DragLeave="DropGestureRecognizer_DragLeave"
+                           Drop="DropGestureRecognizer_Drop"/>
+        </toolkit:DockLayout.GestureRecognizers>
         <cw:MediaPlaybackControlsView toolkit:DockLayout.DockPosition="Bottom"
                                       x:Name="MediaPlayBackCV"/>
 
@@ -55,14 +48,16 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="ShowArtistAlbums_Tapped"/>
                         </Border.GestureRecognizers>
-                        <VerticalStackLayout Margin="5,5" ToolTipProperties.Text="{Binding Name}"
-                                             >
+                        <VerticalStackLayout Margin="5,5" 
+                                             ToolTipProperties.Text="{Binding Name}">
+                            
                             <toolkit:AvatarView ImageSource="{Binding AlbumImagePath}" HorizontalOptions="Center"
                                        HeightRequest="100" WidthRequest="100" 
                                         BorderWidth="0" CornerRadius="8"/>
                             
-                                <Label Text="{Binding Name}" FontSize="14" HorizontalTextAlignment="Center"
-                                       Padding="10,5" LineBreakMode="WordWrap" HorizontalOptions="Center"/>
+                            <Label Text="{Binding Name}" FontSize="14" HorizontalTextAlignment="Center"
+                                    Padding="10,5" LineBreakMode="WordWrap" HorizontalOptions="Center"/>
+                            
                         </VerticalStackLayout>
 
                     </Border>
@@ -83,7 +78,7 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:ArtistModelView">
                     <Border HorizontalOptions="Center">                        
-                    <syncf:SfEffectsView Padding="10,5" TouchDownEffects="Ripple" 
+                    <syncf:SfEffectsView Padding="10,5" TouchDownEffects="Ripple" RippleAnimationDuration="500"
                             x:Name="ArtistView" TouchDown="ArtistView_TouchDown">
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
@@ -91,7 +86,7 @@
 
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="OrangeRed"/>                                        
+                                            <Setter Property="BackgroundColor" Value="DarkSlateBlue"/>                                        
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -100,7 +95,7 @@
                             <Label Text="{Binding Name}" HeightRequest="40">
                                 <Label.Triggers>
                                     <DataTrigger TargetType="Label" Binding="{Binding IsCurrentlySelected}" Value="True">
-                                        <Setter Property="TextColor" Value="DarkSlateBlue"/>
+                                        <Setter Property="TextColor" Value="#B197FC"/>
                                         <Setter Property="FontSize" Value="20"/>
                                     </DataTrigger>
                                     
@@ -132,8 +127,8 @@
             </CollectionView.Header>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:SongModelView">
-                    <Border Stroke="Transparent" HorizontalOptions="Center" 
-                            FlyoutBase.ContextFlyout="{StaticResource ArtistAlbumSongsContextMenu}">
+                    <Border Stroke="Transparent" HorizontalOptions="Center">
+                        
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal" />
@@ -151,7 +146,7 @@
                         <Border.Triggers>
                             <DataTrigger TargetType="Border"
                                          Binding="{Binding IsCurrentPlayingHighlight}" Value="True">
-                                <Setter Property="BackgroundColor" Value="DarkSlateBlue" />
+                                <Setter Property="BackgroundColor" Value="Transparent" />
                                 <Setter Property="Stroke" Value="DarkSlateBlue" />
                             </DataTrigger>
                             <DataTrigger TargetType="Border"
@@ -164,25 +159,28 @@
                         </Border.Triggers>
                         
                         <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="SongInAlbumFromArtistPage_TappedToPlay" NumberOfTapsRequired="2"/>
+                            <TapGestureRecognizer Tapped="PlaySong_Tapped" NumberOfTapsRequired="2"/>
                             <PointerGestureRecognizer PointerEntered="PointerGestureRecognizer_PointerEntered"/>
                         </Border.GestureRecognizers>
-                        <FlexLayout JustifyContent="SpaceBetween" Margin="10,0">
+                        
+                        
+                        <syncf:SfEffectsView TouchDownEffects="Ripple" BackgroundColor="Transparent">                            
+                            <FlexLayout JustifyContent="SpaceBetween" Margin="10,0">
                             <VerticalStackLayout BackgroundColor="Transparent">
-                                <Label Text="{Binding Title}" FontSize="18"/>
+                                <Label Text="{Binding Title}" FontSize="16"/>
                                 <Label Text="{Binding ArtistName}" FontSize="13" TextColor="Gray"/>
 
                             </VerticalStackLayout>
 
                             <VerticalStackLayout BackgroundColor="Transparent">
                                 <Label Text="{Binding DurationInSeconds, Converter={StaticResource DurationConverter}}"/>
-                                <Image WidthRequest="20" IsVisible="{Binding HasLyrics}">
-                                    <Image.Source>
-                                        <FontImageSource FontFamily="MaterialRounded" Glyph="{x:Static m:MaterialRounded.Lyrics}"/>
-                                    </Image.Source>
+                                <Image WidthRequest="20" IsVisible="{Binding HasLyrics}"
+                                       Source="lyrics.png">
+                                    
                                 </Image>
                             </VerticalStackLayout>
-                        </FlexLayout>
+                            </FlexLayout>
+                        </syncf:SfEffectsView>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

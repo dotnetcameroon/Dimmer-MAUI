@@ -1,4 +1,4 @@
-using Syncfusion.Maui.Toolkit.Chips;
+using System.Diagnostics;
 
 namespace Dimmer_MAUI.Views.Desktop;
 
@@ -7,49 +7,78 @@ public partial class SingleSongShellPageD : ContentPage
 	public SingleSongShellPageD(HomePageVM homePageVM)
     {
         InitializeComponent();
-        ViewModel = homePageVM;
+        MyViewModel = homePageVM;
         BindingContext = homePageVM;
         MediaPlayBackCW.BindingContext = homePageVM;
 
     }
-    public HomePageVM ViewModel { get; }
+    public HomePageVM MyViewModel { get; }
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        if (ViewModel.TemporarilyPickedSong is null)
+        if (MyViewModel.MySelectedSong is null)
         {
             return;
         }
-        ViewModel.CurrentPage = PageEnum.NowPlayingPage;
-        
-        ViewModel.AssignSyncLyricsCV(LyricsColView);
-        switch (ViewModel.TemporarilyPickedSong.IsFavorite)
+        MyViewModel.CurrentPage = PageEnum.NowPlayingPage;
+        MyViewModel.CurrentPageMainLayout = MainDock;
+        MyViewModel.AssignSyncLyricsCV(LyricsColView);
+        switch (MyViewModel.MySelectedSong.IsFavorite)
         {
             
             case true:
                 RatingChipCtrl.SelectedItem = LoveRate;
                 break;
             case false:
-                RatingChipCtrl.SelectedItem = HateRate;
+                switch (MyViewModel.MySelectedSong.Rating)
+                {
+                    case 0:
+                        RatingChipCtrl.SelectedItem = NeutralRate;
+                        break;
+                    case 1:
+                        //RatingChipCtrl.SelectedItem = LikeRate;
+                        break;
+                    case 2:
+                        RatingChipCtrl.SelectedItem = LoveRate;
+                        break;
+                    case 3:
+                        //RatingChipCtrl.SelectedItem = DislikeRate;
+                        break;
+                    case 4:
+                        //RatingChipCtrl.SelectedItem = HateRate;
+                        break;
+                    case 5:
+                        RatingChipCtrl.SelectedItem = HateRate;
+                        break;
+                            
+
+                    default:
+                        break;
+                }
+                RatingChipCtrl.SelectedItem = NeutralRate;
                 break;
             default:
                 break;
         }
 
-
-        if (LyricsColView.SelectedItem is not null)
-        {
-            LyricsColView.ScrollTo(LyricsColView.SelectedItem, null, ScrollToPosition.Center, true);
-        }
     }
 
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+
+        if (LyricsColView.SelectedItem is not null && LyricsColView.ItemsSource is not null)
+        {
+            LyricsColView.ScrollTo(LyricsColView.SelectedItem, null, ScrollToPosition.Center, false);
+        }
+    }
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         StatsTabs.SelectedItem = SyncLyricsChip;
-        ViewModel.LyricsSearchAlbumName = string.Empty;
-        ViewModel.LyricsSearchArtistName= string.Empty;
-        ViewModel.LyricsSearchSongTitle= string.Empty;
+        MyViewModel.LyricsSearchAlbumName = string.Empty;
+        MyViewModel.LyricsSearchArtistName= string.Empty;
+        MyViewModel.LyricsSearchSongTitle= string.Empty;
     }
 
     private void TabView_SelectionChanged(object sender, Syncfusion.Maui.Toolkit.TabView.TabSelectionChangedEventArgs e)
@@ -60,9 +89,9 @@ public partial class SingleSongShellPageD : ContentPage
                 break;
             case 1:
                 emptyV.IsVisible = false;
-                if (ViewModel.AllSyncLyrics is not null)
+                if (MyViewModel.AllSyncLyrics is not null)
                 {
-                    ViewModel.AllSyncLyrics = new();
+                    MyViewModel.AllSyncLyrics = new();
                 }
                 break;
             case 2:
@@ -73,7 +102,7 @@ public partial class SingleSongShellPageD : ContentPage
         }
         if (e.NewIndex == 2)
         {
-            ViewModel.ShowSingleSongStatsCommand.Execute(ViewModel.SelectedSongToOpenBtmSheet);
+            MyViewModel.ShowSingleSongStatsCommand.Execute(MyViewModel.MySelectedSong);
         }
     }
 
@@ -92,7 +121,7 @@ public partial class SingleSongShellPageD : ContentPage
 
         _isThrottling = true;
 
-        ViewModel.SeekSongPosition();
+        MyViewModel.SeekSongPosition();
 
 
         await Task.Delay(throttleDelay);
@@ -131,7 +160,7 @@ public partial class SingleSongShellPageD : ContentPage
         //await FocusModeUI.AnimateFocusModePointerExited();
         leftImgBtn.IsVisible = false;
         rightImgBtn.IsVisible = false;
-        ViewModel.ToggleSleekModeCommand.Execute(true);
+        MyViewModel.ToggleSleekModeCommand.Execute(true);
     }
     private async void ToggleFocusModeClicked(object sender, EventArgs e)
     {
@@ -170,14 +199,14 @@ public partial class SingleSongShellPageD : ContentPage
 
     private void FocusModePlayResume_Tapped(object sender, TappedEventArgs e)
     {
-        if (ViewModel.IsPlaying)
+        if (MyViewModel.IsPlaying)
         {
-            ViewModel.PauseSongCommand.Execute(null);
+            MyViewModel.PauseSongCommand.Execute(null);
             RunFocusModeAnimation(sender as AvatarView, Color.FromArgb("#8B0000")); // DarkRed for pause
         }
         else
         {
-            ViewModel.ResumeSongCommand.Execute(null);
+            MyViewModel.ResumeSongCommand.Execute(null);
             RunFocusModeAnimation(sender as AvatarView, Color.FromArgb("#483D8B")); // DarkSlateBlue for resume
         }
     }
@@ -217,18 +246,39 @@ public partial class SingleSongShellPageD : ContentPage
     }
 
 
+
     private void LyricsColView_SelectionChanged(object sender, Microsoft.Maui.Controls.SelectionChangedEventArgs e)
     {
         try
         {
+            
             if (LyricsColView.ItemsSource is not null)
             {
-                if (LyricsColView.SelectedItem is not null )
+                if (LyricsColView.SelectedItem is not null)
                 {
                     LyricsColView.ScrollTo(LyricsColView.SelectedItem, null, ScrollToPosition.Center, true);
                 }
-            }            
-         
+            }
+
+            // --- Reset FontSize for Previously Selected Items ---
+            if (e.PreviousSelection != null && e.PreviousSelection.Count > 0)
+            {
+                foreach (LyricPhraseModel oldItem in e.PreviousSelection.Cast<LyricPhraseModel>())
+                {
+                    oldItem.NowPlayingLyricsFontSize = 29; // Set FontSize to 19 for unselected
+                    //Debug.WriteLine($"Item unselected, set FontSize to 19: {oldItem?.Text}");
+                }
+            }
+
+            // --- Set FontSize for Currently Selected Items ---
+            if (e.CurrentSelection != null && e.CurrentSelection.Count > 0)
+            {
+                foreach (LyricPhraseModel newItem in e.CurrentSelection.Cast<LyricPhraseModel>())
+                {
+                    newItem.NowPlayingLyricsFontSize = 65; // Set FontSize to 21 for selected
+                    //Debug.WriteLine($"Item selected, set FontSize to 21: {newItem?.Text}");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -238,11 +288,11 @@ public partial class SingleSongShellPageD : ContentPage
 
     private void SeekSongPosFromLyric_Tapped(object sender, TappedEventArgs e)
     {
-        if (ViewModel.IsPlaying)
+        if (MyViewModel.IsPlaying)
         {
-            var bor = (Border)sender;
+            var bor = (Label)sender;
             var lyr = (LyricPhraseModel)bor.BindingContext;
-            ViewModel.SeekSongPosition(lyr);
+            MyViewModel.SeekSongPosition(lyr);
         }
     }
 
@@ -266,13 +316,13 @@ public partial class SingleSongShellPageD : ContentPage
         if (title == "Synced Lyrics")
         {
 
-            await ViewModel.ShowSingleLyricsPreviewPopup(thisContent!, false);
+            await MyViewModel.ShowSingleLyricsPreviewPopup(thisContent!, false);
         }
         else
         if (title == "Plain Lyrics")
         {
 
-            await ViewModel.ShowSingleLyricsPreviewPopup(thisContent!, true);
+            await MyViewModel.ShowSingleLyricsPreviewPopup(thisContent!, true);
         }
     }
 
@@ -289,7 +339,7 @@ NoLyricsFoundMsg.AnimateFadeOutBack());
 
         Lookgif.IsVisible = true;
 
-        await ViewModel.FetchLyrics(true);
+        await MyViewModel.FetchLyrics(true);
 
         await Task.WhenAll(Lookgif.AnimateFadeOutBack(), fetchFailed.AnimateFadeInFront(),
 NoLyricsFoundMsg.AnimateFadeInFront());
@@ -305,8 +355,7 @@ NoLyricsFoundMsg.AnimateFadeInFront());
     {
         var selectedTab = StatsTabs.SelectedItem;
         var send = (SfChipGroup)sender;
-        var selected = send.SelectedItem as SfChip;
-        if (selected is null)
+        if (send.SelectedItem is not SfChip selected)
         {
             return;
         }
@@ -320,25 +369,25 @@ NoLyricsFoundMsg.AnimateFadeInFront());
                 break;
             case 1:
                 //SongsStatsView front, rest back
-                //HomePageVM.GetNotListenedStreaks();
-                //HomePageVM.GetTopStreakTracks();
+                //MyViewModel.GetNotListenedStreaks();
+                //MyViewModel.GetTopStreakTracks();
 
-                //HomePageVM.GetGoldenOldies();
+                //MyViewModel.GetGoldenOldies();
 
 
-                //HomePageVM.GetBiggestFallers(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetStatisticalOutlierSongs();
-                //HomePageVM.GetDailyListeningVolume();
-                //HomePageVM.GetUniqueTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetNewTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
-                //HomePageVM.GetOngoingGapBetweenTracks();
+                //MyViewModel.GetBiggestFallers(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetStatisticalOutlierSongs();
+                //MyViewModel.GetDailyListeningVolume();
+                //MyViewModel.GetUniqueTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetNewTracksInMonth(DateTime.Now.Month, DateTime.Now.Year);
+                //MyViewModel.GetOngoingGapBetweenTracks();
                 break;
             case 2:
                 break;
             case 3:
                 break;
             case 4:
-                ViewModel.CalculateGeneralSongStatistics(ViewModel.SelectedSongToOpenBtmSheet.LocalDeviceId);
+                MyViewModel.CalculateGeneralSongStatistics(MyViewModel.MySelectedSong.LocalDeviceId);
                 
                 
                 break;
@@ -376,7 +425,7 @@ NoLyricsFoundMsg.AnimateFadeInFront());
     {
         var ee = (SfChip)sender;
 
-        ViewModel.RateSongCommand.Execute(ee.CommandParameter.ToString()!);
+        MyViewModel.RateSongCommand.Execute(ee.CommandParameter.ToString()!);
     }
 
     List<string> SelectedSongIds = new List<string>();
@@ -385,11 +434,11 @@ NoLyricsFoundMsg.AnimateFadeInFront());
     {
         //DailyCalender.MaximumDate = DateTime.Now;
         string SelectedSong1Id = string.Empty;
-        if (ViewModel is null || ViewModel.TemporarilyPickedSong is null || ViewModel.SelectedSongToOpenBtmSheet is null || ViewModel.SelectedSongToOpenBtmSheet.LocalDeviceId is null)
+        if (MyViewModel is null || MyViewModel.TemporarilyPickedSong is null || MyViewModel.MySelectedSong is null || MyViewModel.MySelectedSong.LocalDeviceId is null)
         {            
             return;
         }
-        SelectedSong1Id = ViewModel.SelectedSongToOpenBtmSheet.LocalDeviceId;
+        SelectedSong1Id = MyViewModel.MySelectedSong.LocalDeviceId;
         SelectedSongIds = new List<string> { SelectedSong1Id };
         if (e.NewIndex == 6)
         {
@@ -436,7 +485,7 @@ NoLyricsFoundMsg.AnimateFadeInFront());
         PageBGImg.Source = item.LinkToCoverImage;
         await Task.Delay(2000);
         NormalNowPlayingUI.IsVisible = true;
-        PageBGImg.Source = ViewModel.TemporarilyPickedSong.CoverImagePath;
+        PageBGImg.Source = MyViewModel.TemporarilyPickedSong.CoverImagePath;
     }
 
     private void SaveImageInfo_Clicked(object sender, EventArgs e)
@@ -475,11 +524,6 @@ NoLyricsFoundMsg.AnimateFadeInFront());
         
         
     }
-    Label CurrentLyrLabel { get; set; }
-    private void Label_Loaded(object sender, EventArgs e)
-    {
-        CurrentLyrLabel = (Label)sender;
-    }
 
     private void ImageButton_Clicked(object sender, EventArgs e)
     {
@@ -505,5 +549,141 @@ NoLyricsFoundMsg.AnimateFadeInFront());
             NormalNowPlayingUI.AnimateFadeOutBack());
             isOnFocusMode = true;
         }
+    }
+
+    Label CurrentLyrLabel { get; set; }
+    private void Label_Loaded(object sender, EventArgs e)
+    {
+        CurrentLyrLabel = (Label)sender;
+    }
+    private void LyrBorder_SizeChanged(object sender, EventArgs e)
+    {
+
+    }
+
+    private void LyrBorder_ParentChanged(object sender, EventArgs e)
+    {
+
+    }
+
+
+    List<string> supportedFilePaths;
+    bool isAboutToDropFiles = false;
+    private async void DropGestureRecognizer_DragOver(object sender, DragEventArgs e)
+    {
+        try
+        {
+
+            if (!isAboutToDropFiles)
+            {
+                isAboutToDropFiles = true;
+#if WINDOWS
+                var WindowsEventArgs = e.PlatformArgs.DragEventArgs;
+                var dragUI = WindowsEventArgs.DragUIOverride;
+
+
+                var items = await WindowsEventArgs.DataView.GetStorageItemsAsync();
+                e.AcceptedOperation = DataPackageOperation.None;
+                supportedFilePaths = new List<string>();
+
+                if (items.Count > 0)
+                {
+                    foreach (var item in items)
+                    {
+                        if (item is Windows.Storage.StorageFile file)
+                        {
+                            /// Check file extension
+                            string fileExtension = file.FileType.ToLower();
+                            if (fileExtension != ".mp3" && fileExtension != ".flac" &&
+                                fileExtension != ".wav" && fileExtension != ".m4a")
+                            {
+                                e.AcceptedOperation = DataPackageOperation.None;
+                                dragUI.IsGlyphVisible = true;
+                                dragUI.Caption = $"{fileExtension.ToUpper()} Files Not Supported";
+                                continue;
+                                //break;  // If any invalid file is found, break the loop
+                            }
+                            else
+                            {
+                                dragUI.IsGlyphVisible = false;
+                                dragUI.Caption = "Drop to Play!";
+                                Debug.WriteLine($"File is {item.Path}");
+                                supportedFilePaths.Add(item.Path.ToLower());
+                            }
+                        }
+                    }
+
+                }
+#endif
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+        }
+        //return Task.CompletedTask;
+    }
+
+    private void DropGestureRecognizer_DragLeave(object sender, DragEventArgs e)
+    {
+        try
+        {
+            isAboutToDropFiles = false;
+            var send = sender as View;
+            if (send is null)
+            {
+                return;
+            }
+            send.Opacity = 1;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+        }
+    }
+
+    private void DropGestureRecognizer_Drop(object sender, DropEventArgs e)
+    {
+        supportedFilePaths ??= new();
+        isAboutToDropFiles = false;
+
+
+        if (supportedFilePaths.Count > 0)
+        {
+            MyViewModel.LoadLocalSongFromOutSideApp(supportedFilePaths);
+        }
+    }
+
+    private void ImageButton_Clicked_1(object sender, EventArgs e)
+    {
+
+    }
+
+    private async void ToggleFullScreen_Clicked(object sender, EventArgs e)
+    {
+        if (FocusModeUI.IsVisible)
+        {
+            await Task.WhenAll(
+            FocusModeUI.AnimateFadeOutBack(),
+            NormalNowPlayingUI.AnimateFadeInFront()
+
+            );
+
+            isOnFocusMode = false;
+        }
+        else
+        {
+            await Task.WhenAll(
+            FocusModeUI.AnimateFadeInFront(),
+            NormalNowPlayingUI.AnimateFadeOutBack());
+            isOnFocusMode = true;
+        }
+    }
+
+    private void ToggleShellPane_Clicked(object sender, EventArgs e)
+    {
+        MyViewModel.ToggleFlyout();
+
     }
 }

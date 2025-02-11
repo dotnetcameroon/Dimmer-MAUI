@@ -6,16 +6,17 @@ public partial class SingleSongStatsPageD : ContentPage
     {
         InitializeComponent();
         this.BindingContext = homePageVM;
-        HomePageVM = homePageVM;
+        MyViewModel = homePageVM;
     }
-    public HomePageVM HomePageVM { get; }
+    public HomePageVM MyViewModel { get; }
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        if (HomePageVM.TemporarilyPickedSong is null)
+        if (MyViewModel.TemporarilyPickedSong is null)
         {
             return;
         }
-        HomePageVM.CurrentPage = PageEnum.FullStatsPage;
+        MyViewModel.CurrentPage = PageEnum.FullStatsPage;
+        MyViewModel.CurrentPageMainLayout = MainDock;
     }
 }
